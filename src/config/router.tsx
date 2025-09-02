@@ -1,12 +1,16 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { lazy } from 'react'
 import Layout from '../components/layout/Layout'
-import Home from '../pages/Home'
-import About from '../pages/About'
-import Services from '../pages/Services'
-import Contact from '../pages/Contact'
-import Privacy from '../pages/Privacy'
-import Terms from '../pages/Terms'
-import NotFound from '../pages/NotFound'
+import LazyLoader from '../components/LazyLoader'
+
+// Lazy load all page components
+const Home = lazy(() => import('../pages/Home'))
+const About = lazy(() => import('../pages/About'))
+const Services = lazy(() => import('../pages/Services'))
+const Contact = lazy(() => import('../pages/Contact'))
+const Privacy = lazy(() => import('../pages/Privacy'))
+const Terms = lazy(() => import('../pages/Terms'))
+const NotFound = lazy(() => import('../pages/NotFound'))
 
 export const router = createBrowserRouter([
   {
@@ -15,31 +19,59 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Home />,
+        element: (
+          <LazyLoader>
+            <Home />
+          </LazyLoader>
+        ),
       },
       {
         path: 'about',
-        element: <About />,
+        element: (
+          <LazyLoader>
+            <About />
+          </LazyLoader>
+        ),
       },
       {
         path: 'services',
-        element: <Services />,
+        element: (
+          <LazyLoader>
+            <Services />
+          </LazyLoader>
+        ),
       },
       {
         path: 'contact',
-        element: <Contact />,
+        element: (
+          <LazyLoader>
+            <Contact />
+          </LazyLoader>
+        ),
       },
       {
         path: 'privacy',
-        element: <Privacy />,
+        element: (
+          <LazyLoader>
+            <Privacy />
+          </LazyLoader>
+        ),
       },
       {
         path: 'terms',
-        element: <Terms />,
+        element: (
+          <LazyLoader>
+            <Terms />
+          </LazyLoader>
+        ),
       },
       {
         path: '*',
-        element: <NotFound />,
+        element: (
+          <LazyLoader>
+            <NotFound />
+          </LazyLoader>
+        ),
       },
     ],
   },
