@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "rm -rf dist && rm -rf src/**/*.d.ts && tsc -b && vite build",
+    "clean": "rm -rf dist && rm -rf src/**/*.d.ts",
     "lint": "eslint .",
     "preview": "vite preview"
   },
