@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Search, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
+import logo from '@/assets/images/logo.png'
 
 const Header = () => {
   const location = useLocation()
@@ -28,8 +29,10 @@ const Header = () => {
           {/* Logo */}
           <div className="flex items-center mr-8">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-white rounded-md flex items-center justify-center">
-                <span className="text-orange-400 font-bold text-lg">Logo</span>
+              <div className="w-10 h-10 bg-white rounded-md flex items-center justify-center">
+                <span className="text-orange-400 font-bold text-lg">
+                  <img src={logo} alt="Logo" />
+                </span>
               </div>
             </Link>
           </div>

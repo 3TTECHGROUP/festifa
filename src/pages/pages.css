@@ -73,3 +73,63 @@
     border-radius: 50px;
     min-width: 258px;
 }
+
+
+
+.card-main-area {
+    background: #FFEDCC;
+    padding-top: 40px;
+    padding-left: 40px;
+    padding-right: 40px;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+}
+
+h3.title-text-main {
+    font-size: 32px;
+    margin-bottom: 0px;
+    font-weight: 600;
+}
+
+.card-main-area p {
+    font-size: 16px;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.card-main-area button {
+    margin-bottom: 30px;
+    padding: 6px 8px;
+    height: auto;
+    font-size: 16px;
+    border-radius: 100px;
+}
+
+.card-main-area button svg {
+    transform: rotate(-45deg);
+    width: 20px;
+    height: 20px;
+}
+
+.grid-columns-main-area {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-column-gap: 30px;
+    grid-row-gap: 30px;
+}
+
+.grid-columns-main-area .grid-cols-main-card:nth-child(1) {
+   grid-column-start: 1;
+   grid-column-end: -1;
+}
+
+.custom-text-class {
+    font-size: 32px;
+    width: 70%;
+}
+
+.custom-boxed-slider-main {
+    width: 70%;
+    margin: auto;    
+    margin-bottom: 100px;
+}
