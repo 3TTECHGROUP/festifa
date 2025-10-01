@@ -276,3 +276,18 @@
     height: 0;
   }
 }
+
+
+
+/* Event-detail-page */
+
+.custom-hero-section-main {
+  margin-top: 40px;
+  margin-bottom: 30px;
+}
+
+.banner-img-main {
+  width: 100%;
+  height: auto !important;
+  border-radius: 20px;
+}
