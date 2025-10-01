@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, Menu, X } from 'lucide-react'
@@ -9,6 +9,7 @@ import logo from '@/assets/images/logo.png'
 const Header = () => {
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const navigate = useNavigate()
 
   const navItems = [
     { name: 'Events', path: '/events' },
@@ -69,6 +70,7 @@ const Header = () => {
           <div className="hidden md:block ml-auto">
             <Button 
               className="bg-black hover:bg-black/90 text-white px-6 py-2 h-9 text-sm font-medium rounded-md"
+              onClick={() => navigate('/signup')}
             >
               Sign up
             </Button>
