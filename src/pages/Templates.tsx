@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Search } from 'lucide-react'
+import eventPageBg from '@/assets/images/event-page-bg.png'
 
 // interface Template {
 //   id: number
@@ -158,7 +159,16 @@ const Templates = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <div className="relative overflow-hidden" style={{ backgroundColor: '#FFA500' }}>
+      <div className="relative overflow-hidden" style={{ 
+        backgroundColor: '#ffa503',
+        backgroundImage: `url(${eventPageBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}>
+        {/* Orange Color Overlay */}
+        <div className="absolute inset-0 bg-[#FFA500]/30"></div>
+        
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0" style={{
@@ -179,7 +189,7 @@ const Templates = () => {
           <div className="absolute bottom-16 left-1/2 w-10 h-10 border-2 border-white/20 rounded-lg rotate-45" />
         </div>
 
-        <div className="relative container mx-auto px-4 py-16 text-center">
+        <div className="relative container mx-auto px-4 py-16 text-center z-10">
           <h1 className="text-4xl md:text-5xl font-bold text-black mb-4">
             Templates for all types of events
           </h1>

@@ -288,6 +288,36 @@
 
 .banner-img-main {
   width: 100%;
-  height: auto !important;
+  height: 550px !important;
   border-radius: 20px;
+}
+
+.custom-box-main input,
+.custom-box-main select{
+  height: 40px !important;
+    border: none !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    width: 100% !important;
+    display: block !important;
+}
+
+.custom-box-main .custom-button-dropdown{
+  height: 40px !important;
+  border: none !important;
+  border-radius: 4px !important;
+  background: #fff !important;
+  padding-right: 10px !important;
+}
+
+.custom-box-main textarea{
+  border: none !important;
+    border-radius: 4px !important;
+}
+
+.comman-box-main-grid{
+  background: #fff;
+  border-radius: 4px;
+  height: 40px;
+  padding: 0px 15px;
 }

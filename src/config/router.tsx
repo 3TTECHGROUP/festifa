@@ -3,7 +3,9 @@ import { lazy } from 'react'
 import Layout from '../components/layout/Layout'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import AuthGuard from '../components/AuthGuard'
+import AuthAware404 from '../components/AuthAware404'
 import LazyLoader from '../components/LazyLoader'
+import ProtectedRoute from '../components/ProtectedRoute'
 
 // Lazy load all page components
 const Home = lazy(() => import('../pages/Home'))
@@ -22,8 +24,13 @@ const Login = lazy(() => import('../pages/Login'))
 const ForgotPassword = lazy(() => import('../pages/ForgotPassword'))
 const VerifyOTP = lazy(() => import('../pages/VerifyOTP'))
 const Dashboard = lazy(() => import('../pages/Dashboard'))
+const Accounts = lazy(() => import('../pages/Accounts'))
+const Tickets = lazy(() => import('../pages/Tickets'))
+const Discover = lazy(() => import('../pages/Discover'))
+const Referrals = lazy(() => import('../pages/Referrals'))
+const UserDetails = lazy(() => import('../pages/UserDetails'))
+const CreateEvent = lazy(() => import('../pages/CreateEvent'))
 const DashboardNotFound = lazy(() => import('../pages/DashboardNotFound'))
-const NotFound = lazy(() => import('../pages/NotFound'))
 
 export const router = createBrowserRouter([
   {
@@ -121,17 +128,21 @@ export const router = createBrowserRouter([
       {
         path: 'signup',
         element: (
-          <LazyLoader>
-            <Signup />
-          </LazyLoader>
+          <ProtectedRoute requireAuth={false}>
+            <LazyLoader>
+              <Signup />
+            </LazyLoader>
+          </ProtectedRoute>
         ),
       },
       {
         path: 'login',
         element: (
-          <LazyLoader>
-            <Login />
-          </LazyLoader>
+          <ProtectedRoute requireAuth={false}>
+            <LazyLoader>
+              <Login />
+            </LazyLoader>
+          </ProtectedRoute>
         ),
       },
       {
@@ -150,14 +161,6 @@ export const router = createBrowserRouter([
           </LazyLoader>
         ),
       },
-      {
-        path: '*',
-        element: (
-          <LazyLoader>
-            <NotFound />
-          </LazyLoader>
-        ),
-      },
     ],
   },
   {
@@ -165,6 +168,7 @@ export const router = createBrowserRouter([
     element: <AuthGuard />,
     children: [
       {
+        path: '',
         element: <DashboardLayout />,
         children: [
           {
@@ -172,6 +176,54 @@ export const router = createBrowserRouter([
             element: (
               <LazyLoader>
                 <Dashboard />
+              </LazyLoader>
+            ),
+          },
+          {
+            path: 'create-event',
+            element: (
+              <LazyLoader>
+                <CreateEvent />
+              </LazyLoader>
+            ),
+          },
+          {
+            path: 'accounts',
+            element: (
+              <LazyLoader>
+                <Accounts />
+              </LazyLoader>
+            ),
+          },
+          {
+            path: 'tickets',
+            element: (
+              <LazyLoader>
+                <Tickets />
+              </LazyLoader>
+            ),
+          },
+          {
+            path: 'discover',
+            element: (
+              <LazyLoader>
+                <Discover />
+              </LazyLoader>
+            ),
+          },
+          {
+            path: 'referrals',
+            element: (
+              <LazyLoader>
+                <Referrals />
+              </LazyLoader>
+            ),
+          },
+          {
+            path: 'user-details/:id',
+            element: (
+              <LazyLoader>
+                <UserDetails />
               </LazyLoader>
             ),
           },
@@ -186,5 +238,10 @@ export const router = createBrowserRouter([
         ],
       },
     ],
+  },
+  // Authentication-aware 404 handler
+  {
+    path: '*',
+    element: <AuthAware404 />,
   },
 ])
