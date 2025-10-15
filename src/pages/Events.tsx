@@ -5,6 +5,7 @@ import SearchFilter from '@/components/SearchFilter'
 import EventCard from '@/components/EventCard'
 import FilterModal from '@/components/FilterModal'
 import { mockEvents } from '@/data/mockEvents'
+import eventPageBg from '@/assets/images/event-page-bg.png'
 
 // Mock categories data
 const categories = [
@@ -24,7 +25,16 @@ const Events = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="relative overflow-hidden" style={{ backgroundColor: '#FFA500' }}>
+      <div className="relative overflow-hidden" style={{ 
+        backgroundColor: '#ffa503',
+        backgroundImage: `url(${eventPageBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}>
+        {/* Orange Color Overlay */}
+        <div className="absolute inset-0 bg-[#FFA500]/30"></div>
+        
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0" style={{
@@ -39,7 +49,7 @@ const Events = () => {
           <div className="absolute top-1/3 right-1/3 w-10 h-10 border-2 border-white/20 rounded-lg rotate-45" />
         </div>
 
-        <div className="relative container mx-auto px-4 py-16 text-center">
+        <div className="relative container mx-auto px-4 py-16 text-center z-10">
           <h1 className="text-4xl md:text-5xl font-bold text-black mb-4">
             Best search for all events
           </h1>

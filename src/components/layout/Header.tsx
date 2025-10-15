@@ -3,13 +3,32 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import logo from '@/assets/images/logo.png'
+import UserDropdown from '@/components/ui/UserDropdown'
 
 const Header = () => {
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const navigate = useNavigate()
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = () => {
+      const authStatus = localStorage.getItem('isAuthenticated') === 'true'
+      setIsAuthenticated(authStatus)
+    }
+    
+    checkAuth()
+    
+    // Listen for storage changes (when user logs in/out in another tab)
+    window.addEventListener('storage', checkAuth)
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth)
+    }
+  }, [])
 
   const navItems = [
     { name: 'Events', path: '/events' },
@@ -30,7 +49,7 @@ const Header = () => {
           {/* Logo */}
           <div className="flex items-center mr-8">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-white rounded-md flex items-center justify-center">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
                 <span className="text-orange-400 font-bold text-lg">
                   <img src={logo} alt="Logo" />
                 </span>
@@ -66,14 +85,18 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* Desktop Sign up Button */}
+          {/* Desktop Auth Section */}
           <div className="hidden md:block ml-auto">
-            <Button 
-              className="bg-black hover:bg-black/90 text-white px-6 py-2 h-9 text-sm font-medium rounded-md"
-              onClick={() => navigate('/signup')}
-            >
-              Sign up
-            </Button>
+            {isAuthenticated ? (
+              <UserDropdown />
+            ) : (
+              <Button 
+                className="bg-black hover:bg-black/90 text-white px-6 py-2 h-9 text-sm font-medium rounded-md"
+                onClick={() => navigate('/signup')}
+              >
+                Sign up
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -127,14 +150,23 @@ const Header = () => {
               ))}
             </nav>
             
-            {/* Mobile Sign up Button */}
+            {/* Mobile Auth Section */}
             <div className="pt-2">
-              <Button 
-                className="bg-black hover:bg-black/90 text-white px-6 py-2 h-9 text-sm font-medium rounded-md w-full"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Sign up
-              </Button>
+              {isAuthenticated ? (
+                <div className="w-full">
+                  <UserDropdown />
+                </div>
+              ) : (
+                <Button 
+                  className="bg-black hover:bg-black/90 text-white px-6 py-2 h-9 text-sm font-medium rounded-md w-full"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false)
+                    navigate('/signup')
+                  }}
+                >
+                  Sign up
+                </Button>
+              )}
             </div>
           </div>
         </div>

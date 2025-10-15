@@ -167,7 +167,7 @@ const FilterModal = ({ isOpen, onClose, onApplyFilter }: FilterModalProps) => {
         <div className="px-6 py-4 border-t border-gray-100 bg-white">
           <button
             onClick={handleApplyFilter}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 rounded-lg transition-colors"
+            className="w-full bg-[#FFA500] hover:bg-orange-600 text-white font-medium py-3 rounded-lg transition-colors"
           >
             Apply Filter
           </button>

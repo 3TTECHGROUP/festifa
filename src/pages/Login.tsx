@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
 
@@ -9,6 +9,29 @@ const Login = () => {
     password: ''
   })
   const [showPassword, setShowPassword] = useState(false)
+
+  // If already authenticated, redirect to dashboard
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('isAuthenticated')
+      let alreadyAuthed = false
+      if (raw === 'true') {
+        alreadyAuthed = true
+      } else if (raw) {
+        try {
+          const parsed = JSON.parse(raw)
+          alreadyAuthed = parsed === true
+        } catch {
+          // ignore parse errors
+        }
+      }
+      if (alreadyAuthed) {
+        navigate('/dashboard', { replace: true })
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [navigate])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

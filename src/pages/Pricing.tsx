@@ -1,12 +1,26 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { Newsletter } from '@/components/containers/Home/Newsletter';
+import save25 from '@/assets/images/save-25.png';
+
+interface PricingPlan {
+  name: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  templates: string;
+  features: string[];
+  buttonStyle: string;
+  cardStyle: string;
+  isPopular?: boolean;
+}
 
 const Pricing = () => {
   const [isYearly, setIsYearly] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
 
-  const pricingPlans = [
+  const pricingPlans: PricingPlan[] = [
     {
       name: "Basic",
       monthlyPrice: 10,
@@ -62,6 +76,16 @@ const Pricing = () => {
     }
   ];
 
+  const handlePurchaseClick = (plan: PricingPlan) => {
+    setSelectedPlan(plan);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedPlan(null);
+  };
+
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
       {/* Header Section */}
@@ -72,7 +96,7 @@ const Pricing = () => {
           </h1>
           
           {/* Pricing Toggle */}
-          <div className="flex items-center justify-center gap-4 mb-12">
+          <div className="flex items-center justify-center gap-4 mb-12 relative">
             <span className={`text-lg ${!isYearly ? 'font-semibold text-black' : 'text-gray-500'}`}>
               Pay Monthly
             </span>
@@ -80,7 +104,7 @@ const Pricing = () => {
               <button
                 onClick={() => setIsYearly(!isYearly)}
                 className={`w-14 h-7 rounded-full transition-colors duration-200 ${
-                  isYearly ? 'bg-orange-500' : 'bg-gray-300'
+                  isYearly ? 'bg-[#FFA500]' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -94,15 +118,18 @@ const Pricing = () => {
               Pay Yearly
             </span>
             {isYearly && (
-              <div className="relative">
-                <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  Save 25%
-                </span>
-                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-                  <svg width="20" height="8" viewBox="0 0 20 8" className="text-orange-500 fill-current">
-                    <path d="M10 8L0 0h20L10 8z"/>
-                  </svg>
-                </div>
+              <div className="flex items-center gap-3">
+                <img 
+                  src={save25} 
+                  alt="Save 25%" 
+                  style={{
+                    width: '240px',
+                    height: '100px',
+                    position: 'absolute',
+                    objectFit: 'scale-down',
+                    top: '60%'
+                  }}
+                />
               </div>
             )}
           </div>
@@ -147,6 +174,7 @@ const Pricing = () => {
 
                 {/* Purchase Button */}
                 <Button
+                  onClick={() => handlePurchaseClick(plan)}
                   className={`w-full py-2.5 rounded-xl font-medium transition-all duration-200 ${plan.buttonStyle}`}
                 >
                   Purchase
@@ -156,6 +184,68 @@ const Pricing = () => {
           ))}
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {isModalOpen && selectedPlan && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 relative">
+            {/* Close Button */}
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+
+            {/* Modal Header */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Payments</h2>
+
+            {/* Selected Package */}
+            <div className="p-0.5 bg-gradient-to-r from-blue-400 via-purple-400 to-orange-400 rounded-lg mb-6">
+              <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-orange-50 rounded-md p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full border-2 border-blue-400 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-blue-400" />
+                  </div>
+                  <span className="font-medium text-gray-900">{selectedPlan.name} Package</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Details */}
+            <div className="space-y-4 mb-8">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Quantity</span>
+                <span className="font-medium text-gray-900">2</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Price:</span>
+                <span className="font-medium text-gray-900">$50</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">VAT:</span>
+                <span className="font-medium text-gray-900">$50</span>
+              </div>
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-semibold text-gray-900">Total:</span>
+                  <span className="text-lg font-bold text-gray-900">$100</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Proceed Button */}
+            <Button
+              className="w-full bg-[#FFA500] hover:bg-orange-600 text-white py-4 px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              Proceed to payment
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Newsletter Section */}
       <Newsletter />

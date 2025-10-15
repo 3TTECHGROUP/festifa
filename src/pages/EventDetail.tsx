@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Heart, MessageCircle, Eye, Share2, Calendar, Clock, MapPin, Ticket, User, ArrowRight, MoreHorizontal } from 'lucide-react'
 import { findEventById, mockEvents } from '@/data/mockEvents'
@@ -11,7 +11,7 @@ const EventDetail = () => {
   const [likeCount, setLikeCount] = useState(10)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-  // const [newComment, setNewComment] = useState('')
+  const [newComment, setNewComment] = useState('')
 
   // Find the event by ID from URL params
   const eventId = id ? parseInt(id, 10) : 1
@@ -48,27 +48,14 @@ const EventDetail = () => {
     }
   }
 
-  // const handleShare = () => {
-  //   if (navigator.share) {
-  //     navigator.share({
-  //       title: event.title,
-  //       text: event.description,
-  //       url: window.location.href,
-  //     })
-  //   } else {
-  //     // Fallback: copy to clipboard
-  //     navigator.clipboard.writeText(window.location.href)
-  //     alert('Event link copied to clipboard!')
-  //   }
-  // }
-
-  // const handleAddComment = () => {
-  //   if (newComment.trim()) {
-  //     // In a real app, this would make an API call
-  //     console.log('Adding comment:', newComment)
-  //     setNewComment('')
-  //   }
-  // }
+  const handleAddComment = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (newComment.trim()) {
+      // TODO: Replace with API call to add comment
+      console.log('Adding comment:', newComment)
+      setNewComment('')
+    }
+  }
 
   return (
     <div className="min-h-screen">
@@ -279,6 +266,23 @@ const EventDetail = () => {
           <div className="bg-gray-50 rounded-lg p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Comments</h2>
             
+            {/* Add Comment - One-liner input with submit */}
+            <form onSubmit={handleAddComment} className="flex items-center gap-3 mb-6">
+              <input
+                type="text"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Write a comment..."
+                className="flex-1 h-11 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-sm"
+              />
+              <button
+                type="submit"
+                className="h-11 px-5 rounded-full bg-black text-white text-sm font-medium hover:bg-gray-800 transition-colors whitespace-nowrap"
+              >
+                Submit
+              </button>
+            </form>
+
             <div className="space-y-6">
               {/* Comment 1 */}
               <div className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">

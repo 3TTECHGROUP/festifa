@@ -2,10 +2,10 @@ import { Link } from 'react-router-dom'
 import logo from '@/assets/images/logo.png'
 const Footer = () => {
   return (
-    <footer className="bg-black text-white py-12">
+    <footer className="bg-black text-white py-12 pb-[200px]">
       <div className="container mx-auto flex flex-col md:flex-row items-start md:items-center justify-between px-8">
         {/* Left Logo */}
-        <div className="w-200 h-200 bg-white rounded-md flex items-center justify-center">
+        <div className="w-200 h-200 bg-white rounded-full flex items-center justify-center">
           <span className="text-orange-400 font-bold text-lg">
             <img src={logo} alt="Logo" />
           </span>
