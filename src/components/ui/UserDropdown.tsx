@@ -1,6 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, LogOut, Settings } from 'lucide-react';
+import { toast } from 'sonner';
+import { useLogoutMutation } from '@/RTK/RegisterUserQuery/registerQuery';
 
 interface UserDropdownProps {
   userName?: string;
@@ -8,7 +11,7 @@ interface UserDropdownProps {
   avatarUrl?: string;
 }
 
-const UserDropdown = ({ userName = "David Ikperi", userEmail = "davidikperi@gmail.com", avatarUrl }: UserDropdownProps) => {
+const UserDropdown = ({ userName = '', userEmail = '', avatarUrl }: UserDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -27,11 +30,27 @@ const UserDropdown = ({ userName = "David Ikperi", userEmail = "davidikperi@gmai
     };
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    setIsOpen(false);
-    navigate('/');
-    window.location.reload(); // Force refresh to update header state
+  const [logoutReq, { isLoading: isLoggingOut }] = useLogoutMutation();
+
+  const handleLogout = async () => {
+    try {
+      await logoutReq().unwrap();
+      toast.success('Logged out successfully');
+    } catch (err: any) {
+      // Proceed with local cleanup even if API errors
+      const msg = err?.data?.message || err?.error || 'Logout failed, clearing session locally';
+      toast.error(msg);
+    } finally {
+      try {
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('user');
+        localStorage.removeItem('email_verified');
+      } finally {
+        setIsOpen(false);
+        navigate('/');
+        window.location.reload();
+      }
+    }
   };
 
   const getInitials = (name: string) => {
@@ -52,12 +71,12 @@ const UserDropdown = ({ userName = "David Ikperi", userEmail = "davidikperi@gmai
       >
         <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
           {avatarUrl ? (
-            <img src={avatarUrl} alt={userName} className="w-full h-full rounded-full object-cover" />
+            <img src={avatarUrl} alt={userName || 'User'} className="w-full h-full rounded-full object-cover" />
           ) : (
-            getInitials(userName)
+            getInitials(userName || (userEmail ? userEmail.split('@')[0] : 'U'))
           )}
         </div>
-        <span className="text-black text-sm font-medium hidden md:block">{userName}</span>
+        <span className="text-black text-sm font-medium hidden md:block">{userName || (userEmail ? userEmail.split('@')[0] : 'User')}</span>
         <svg
           className={`w-4 h-4 text-black transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
@@ -76,13 +95,13 @@ const UserDropdown = ({ userName = "David Ikperi", userEmail = "davidikperi@gmai
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt={userName} className="w-full h-full rounded-full object-cover" />
+                  <img src={avatarUrl} alt={userName || 'User'} className="w-full h-full rounded-full object-cover" />
                 ) : (
-                  getInitials(userName)
+                  getInitials(userName || (userEmail ? userEmail.split('@')[0] : 'U'))
                 )}
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">{userName}</p>
+                <p className="text-sm font-medium text-gray-900">{userName || (userEmail ? userEmail.split('@')[0] : 'User')}</p>
                 <p className="text-xs text-gray-500">{userEmail}</p>
               </div>
             </div>
@@ -110,10 +129,11 @@ const UserDropdown = ({ userName = "David Ikperi", userEmail = "davidikperi@gmai
             
             <button
               onClick={handleLogout}
-              className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              disabled={isLoggingOut}
+              className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
             >
               <LogOut className="w-4 h-4 mr-3" />
-              Logout
+              {isLoggingOut ? 'Logging out…' : 'Logout'}
             </button>
           </div>
         </div>

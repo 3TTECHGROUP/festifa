@@ -11,24 +11,43 @@ const Header = () => {
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [userName, setUserName] = useState<string>('')
+  const [userEmail, setUserEmail] = useState<string>('')
   const navigate = useNavigate()
 
-  // Check authentication status
+  // Check authentication status and user info
   useEffect(() => {
     const checkAuth = () => {
       const authStatus = localStorage.getItem('isAuthenticated') === 'true'
       setIsAuthenticated(authStatus)
+
+      try {
+        const raw = localStorage.getItem('user')
+        if (raw) {
+          const user = JSON.parse(raw) as { name?: string | null; email?: string | null }
+          const email = user?.email || ''
+          const name = user?.name || (email ? email.split('@')[0] : 'User')
+          setUserEmail(email)
+          setUserName(name)
+        } else {
+          setUserEmail('')
+          setUserName('')
+        }
+      } catch {
+        setUserEmail('')
+        setUserName('')
+      }
     }
-    
+
     checkAuth()
-    
-    // Listen for storage changes (when user logs in/out in another tab)
+
+    // Re-check on storage changes and on route changes to reflect same-tab updates
     window.addEventListener('storage', checkAuth)
-    
+
     return () => {
       window.removeEventListener('storage', checkAuth)
     }
-  }, [])
+  }, [location])
 
   const navItems = [
     { name: 'Events', path: '/events' },
@@ -88,7 +107,7 @@ const Header = () => {
           {/* Desktop Auth Section */}
           <div className="hidden md:block ml-auto">
             {isAuthenticated ? (
-              <UserDropdown />
+              <UserDropdown userName={userName || 'User'} userEmail={userEmail || ''} />
             ) : (
               <Button 
                 className="bg-black hover:bg-black/90 text-white px-6 py-2 h-9 text-sm font-medium rounded-md"
@@ -154,7 +173,7 @@ const Header = () => {
             <div className="pt-2">
               {isAuthenticated ? (
                 <div className="w-full">
-                  <UserDropdown />
+                  <UserDropdown userName={userName || 'User'} userEmail={userEmail || ''} />
                 </div>
               ) : (
                 <Button 

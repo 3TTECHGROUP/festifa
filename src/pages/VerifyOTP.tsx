@@ -1,12 +1,25 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  useVerifyEmailMutation,
+  useResendVerificationMutation,
+  useProfileMutation,
+} from '@/RTK/RegisterUserQuery/registerQuery'
 
 const VerifyOTP = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
-  const [timeLeft, setTimeLeft] = useState(180) // 3 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(180)
   const [canResend, setCanResend] = useState(false)
+  const [searchParams] = useSearchParams()
+  const email = searchParams.get('email') || ''
+  const navigate = useNavigate()
+  const [verifyEmail, { isLoading: isVerifying }] = useVerifyEmailMutation()
+  const [resendVerification, { isLoading: isResending }] = useResendVerificationMutation()
+  const [triggerProfile] = useProfileMutation()
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -25,12 +38,17 @@ const VerifyOTP = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const handleResend = () => {
-    setTimeLeft(180)
-    setCanResend(false)
-    setOtp(['', '', '', '', '', ''])
-    console.log('Resending OTP...')
-    // Handle resend OTP logic here
+  const handleResend = async () => {
+    if (!email) return
+    try {
+      await resendVerification({ email }).unwrap()
+      toast.success('Verification code sent to your email')
+      setTimeLeft(180)
+      setCanResend(false)
+      setOtp(['', '', '', '', '', ''])
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.error || 'Failed to resend code')
+    }
   }
 
   const handleChange = (index: number, value: string) => {
@@ -52,11 +70,43 @@ const VerifyOTP = () => {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const otpCode = otp.join('')
-    console.log('OTP Code:', otpCode)
-    // Handle OTP verification logic here
+    const code = otp.join('')
+    if (!email) {
+      toast.error('Missing email. Please sign up again.')
+      navigate('/signup')
+      return
+    }
+    if (code.length !== 6) {
+      toast.error('Please enter the 6-digit code')
+      return
+    }
+    try {
+      const res = await verifyEmail({ email, code }).unwrap()
+      localStorage.setItem('user', JSON.stringify(res.data))
+      localStorage.setItem('email_verified', String(res.data.email_verified))
+      toast.success(res.message || 'Email verified successfully')
+      // Attempt direct login by fetching profile (assuming session/cookie set on verify)
+      try {
+        const profileRes = await triggerProfile().unwrap()
+        localStorage.setItem('isAuthenticated', 'true')
+        localStorage.setItem('user', JSON.stringify(profileRes.data))
+        navigate('/dashboard')
+      } catch (profileErr: any) {
+        // Fallback if profile isn't available yet
+        toast.error(profileErr?.data?.message || profileErr?.error || 'Could not complete login, please login manually')
+        navigate('/login')
+      }
+    } catch (err: any) {
+      const details = err?.data?.error?.details as Array<{ field?: string; message?: string }> | undefined
+      const codeMsg = details?.find?.(d => d.field === 'code')?.message
+      if (codeMsg) {
+        toast.error(codeMsg)
+      } else {
+        toast.error(err?.data?.message || err?.error || 'Verification failed')
+      }
+    }
   }
 
   return (
@@ -103,16 +153,20 @@ const VerifyOTP = () => {
             <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-xl">
               {/* Back Button */}
               <Link 
-                to="/forgot-password" 
+                to="/signup" 
                 className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors mb-6"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-700" />
               </Link>
 
               <div className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">OTP</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Verify your email</h2>
                 <p className="text-gray-500 text-sm">
-                  Hi David, We sent a code to your email, kindly input here.
+                  {email ? (
+                    <>We sent a 6-digit code to <span className="font-medium text-gray-700">{email}</span>. Enter it below.</>
+                  ) : (
+                    <>We need your email to verify. Please go back to sign up.</>
+                  )}
                 </p>
               </div>
 
@@ -139,13 +193,14 @@ const VerifyOTP = () => {
                     <button
                       type="button"
                       onClick={handleResend}
-                      className="text-orange-500 hover:text-orange-600 font-medium"
+                      disabled={!email || isResending}
+                      className="text-orange-500 hover:text-orange-600 font-medium disabled:opacity-60"
                     >
-                      Resend OTP
+                      {isResending ? 'Sending…' : 'Resend code'}
                     </button>
                   ) : (
                     <span className="text-gray-500 text-sm">
-                      Resend OTP in {formatTime(timeLeft)}
+                      Resend code in {formatTime(timeLeft)}
                     </span>
                   )}
                 </div>
@@ -153,9 +208,10 @@ const VerifyOTP = () => {
                 {/* Recover Button */}
                 <button
                   type="submit"
-                  className="w-full bg-black text-white py-3.5 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+                  disabled={isVerifying}
+                  className="w-full bg-black text-white py-3.5 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-60"
                 >
-                  Recover my account
+                  {isVerifying ? 'Verifying…' : 'Verify email'}
                 </button>
               </form>
 

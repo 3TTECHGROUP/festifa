@@ -1,17 +1,25 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import { toast } from 'sonner'
+import { usePasswordResetMutation } from '@/RTK/RegisterUserQuery/registerQuery'
 
 const ForgotPassword = () => {
-  const navigate = useNavigate()
   const [email, setEmail] = useState('')
+  const navigate = useNavigate()
+  const [passwordReset, { isLoading }] = usePasswordResetMutation()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle password recovery logic here
-    console.log('Recovery email:', email)
-    // Navigate to OTP verification page
-    navigate('/verify-otp')
+    try {
+      const res = await passwordReset({ email }).unwrap()
+      toast.success(res?.message || 'If the email exists, a reset code has been sent')
+      navigate(`/reset-password/verify?email=${encodeURIComponent(email)}`)
+    } catch (err: any) {
+      const msg = err?.data?.message || err?.error || 'Failed to request password reset'
+      toast.error(msg)
+    }
   }
 
   return (
@@ -92,9 +100,10 @@ const ForgotPassword = () => {
                 {/* Recover Button */}
                 <button
                   type="submit"
-                  className="w-full bg-black text-white py-3.5 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+                  disabled={isLoading}
+                  className="w-full bg-black text-white py-3.5 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-60"
                 >
-                  Recover my account
+                  {isLoading ? 'Requesting…' : 'Recover my account'}
                 </button>
               </form>
 

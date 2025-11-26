@@ -1,13 +1,41 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
+import { useRegisterMutation } from '@/RTK/RegisterUserQuery/registerQuery'
 
 const Signup = () => {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const [register, { isLoading }] = useRegisterMutation()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validatePassword = (pwd: string) => {
+    // At least one letter, one digit, one special, and 8+ chars
+    const re = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/
+    return re.test(pwd)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle signup logic here
-    console.log('Signup email:', email)
+
+    if (!validatePassword(password)) {
+      setPasswordError('Password must contain at least one letter, one digit, and one special character')
+      return
+    }
+
+    try {
+      const res = await register({ email, password }).unwrap()
+      toast.success(res.message || 'User registered successfully')
+      navigate(`/verify-otp?email=${encodeURIComponent(email)}`)
+    } catch (err: any) {
+      // show API validation detail for password if provided
+      const apiDetail = err?.data?.error?.details?.find?.((d: any) => d?.field === 'password')
+      if (apiDetail?.message) setPasswordError(apiDetail.message)
+      const msg = err?.data?.message || err?.error || 'Registration failed'
+      toast.error(msg)
+    }
   }
 
   const handleGoogleSignup = () => {
@@ -81,12 +109,36 @@ const Signup = () => {
                   />
                 </div>
 
+                {/* Password Field */}
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      if (passwordError) setPasswordError(null)
+                    }}
+                    placeholder="Password"
+                    className={`w-full px-4 py-3 bg-gray-50 border ${passwordError ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-sm placeholder:text-gray-400`}
+                    required
+                  />
+                  {passwordError && (
+                    <p className="mt-2 text-sm text-red-600">{passwordError}</p>
+                  )}
+                </div>
+
                 {/* Sign Up Button */}
                 <button
                   type="submit"
-                  className="w-full bg-black text-white py-3.5 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors mt-6"
+                  disabled={isLoading}
+                  className="w-full bg-black text-white py-3.5 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors mt-6 disabled:opacity-60"
                 >
-                  Sign up
+                  {isLoading ? 'Creating…' : 'Sign up'}
                 </button>
 
                 {/* Divider */}

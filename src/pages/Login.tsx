@@ -1,14 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { toast } from 'sonner'
+import { useLoginMutation } from '@/RTK/RegisterUserQuery/registerQuery'
 
 const Login = () => {
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    remember: true,
   })
   const [showPassword, setShowPassword] = useState(false)
+  const [login, { isLoading }] = useLoginMutation()
 
   // If already authenticated, redirect to dashboard
   useEffect(() => {
@@ -34,21 +39,31 @@ const Login = () => {
   }, [navigate])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+    const { name, value, type, checked } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value,
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle login logic here
-    console.log('Login data:', formData)
-    // Set authentication status
-    localStorage.setItem('isAuthenticated', 'true')
-    // Navigate to dashboard after successful login
-    navigate('/dashboard')
+    try {
+      const res = await login({
+        email: formData.email,
+        password: formData.password,
+        remember: formData.remember,
+      }).unwrap()
+      toast.success(res?.message || 'Logged in successfully')
+      localStorage.setItem('isAuthenticated', 'true')
+      localStorage.setItem('user', JSON.stringify(res.data))
+      // localStorage.setItem('authToken', String(res.data.token))
+      localStorage.setItem('email_verified', String(res.data.email_verified))
+      navigate('/dashboard')
+    } catch (err: any) {
+      const msg = err?.data?.message || err?.error || 'Login failed'
+      toast.error(msg)
+    }
   }
 
   const handleGoogleLogin = () => {
@@ -160,12 +175,27 @@ const Login = () => {
                   </div>
                 </div>
 
+                {/* Remember me */}
+                <div className="flex items-center justify-between mt-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      name="remember"
+                      checked={formData.remember}
+                      onChange={handleInputChange}
+                      className="rounded border-gray-300"
+                    />
+                    Remember me
+                  </label>
+                </div>
+
                 {/* Login Button */}
                 <button
                   type="submit"
-                  className="w-full bg-black text-white py-3.5 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors mt-6"
+                  disabled={isLoading}
+                  className="w-full bg-black text-white py-3.5 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors mt-6 disabled:opacity-60"
                 >
-                  Login
+                  {isLoading ? 'Signing in…' : 'Login'}
                 </button>
 
                 {/* Divider */}
