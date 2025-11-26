@@ -23,6 +23,8 @@ const Signup = lazy(() => import('../pages/Signup'))
 const Login = lazy(() => import('../pages/Login'))
 const ForgotPassword = lazy(() => import('../pages/ForgotPassword'))
 const VerifyOTP = lazy(() => import('../pages/VerifyOTP'))
+const ResetPasswordVerify = lazy(() => import('../pages/ResetPasswordVerify'))
+const ResetPasswordNew = lazy(() => import('../pages/ResetPasswordNew'))
 const Dashboard = lazy(() => import('../pages/Dashboard'))
 const Accounts = lazy(() => import('../pages/Accounts'))
 const Tickets = lazy(() => import('../pages/Tickets'))
@@ -150,6 +152,22 @@ export const router = createBrowserRouter([
         element: (
           <LazyLoader>
             <ForgotPassword />
+          </LazyLoader>
+        ),
+      },
+      {
+        path: 'reset-password/verify',
+        element: (
+          <LazyLoader>
+            <ResetPasswordVerify />
+          </LazyLoader>
+        ),
+      },
+      {
+        path: 'reset-password/new',
+        element: (
+          <LazyLoader>
+            <ResetPasswordNew />
           </LazyLoader>
         ),
       },
