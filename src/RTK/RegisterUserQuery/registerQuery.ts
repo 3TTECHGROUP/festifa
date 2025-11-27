@@ -25,7 +25,7 @@ export const registerApi = api.injectEndpoints({
     }),
     profile: builder.mutation<ProfileResponse, void>({
       query: () => ({ url: PROFILE_PATH, method: 'POST' }),
-      providesTags: ['Auth'],
+      invalidatesTags: ['Auth'],
     }),
     passwordReset: builder.mutation<PasswordResetResponse, PasswordResetRequest>({
       query: (body) => ({ url: PASSWORD_RESET_PATH, method: 'POST', body }),
