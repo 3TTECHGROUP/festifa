@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, LogOut, Settings } from 'lucide-react';
+import { User, LogOut, Settings, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLogoutMutation } from '@/RTK/RegisterUserQuery/registerQuery';
 
@@ -109,6 +109,15 @@ const UserDropdown = ({ userName = '', userEmail = '', avatarUrl }: UserDropdown
 
           {/* Menu Items */}
           <div className="py-1">
+            <Link
+              to="/"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Home className="w-4 h-4 mr-3" />
+              Go to Website
+            </Link>
+
             <Link
               to="/dashboard"
               onClick={() => setIsOpen(false)}
