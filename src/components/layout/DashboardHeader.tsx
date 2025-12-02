@@ -1,7 +1,26 @@
-import { User } from 'lucide-react'
-
+import { useState, useEffect } from 'react'
+import UserDropdown from '@/components/ui/UserDropdown'
 
 const DashboardHeader = () => {
+  const [userName, setUserName] = useState<string>('')
+  const [userEmail, setUserEmail] = useState<string>('')
+
+  // Get user info from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('user')
+      if (raw) {
+        const user = JSON.parse(raw) as { name?: string | null; email?: string | null }
+        const email = user?.email || ''
+        const name = user?.name || (email ? email.split('@')[0] : 'User')
+        setUserEmail(email)
+        setUserName(name)
+      }
+    } catch {
+      setUserEmail('')
+      setUserName('User')
+    }
+  }, [])
 
   return (
     <>
@@ -22,10 +41,8 @@ const DashboardHeader = () => {
             <span>Create event</span>
           </div>
 
-          {/* User Profile Icon */}
-          <button className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
-            <User className="w-5 h-5 text-gray-600" />
-          </button>
+          {/* User Dropdown */}
+          <UserDropdown userName={userName || 'User'} userEmail={userEmail || ''} />
         </div>
       </header>
     </>

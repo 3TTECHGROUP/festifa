@@ -1,5 +1,5 @@
 import { api } from '@/service/api'
-import { REGISTER_PATH, RESEND_VERIFICATION_PATH, VERIFY_EMAIL_PATH, PASSWORD_RESET_PATH, PASSWORD_RESET_VERIFY_PATH, PASSWORD_RESET_CONFIRM_PATH, LOGIN_PATH, LOGOUT_PATH, PROFILE_PATH, type RegisterRequest, type RegisterResponse, type ResendVerificationRequest, type ResendVerificationResponse, type VerifyEmailRequest, type VerifyEmailResponse, type PasswordResetRequest, type PasswordResetResponse, type PasswordResetVerifyRequest, type PasswordResetVerifyResponse, type PasswordResetConfirmRequest, type PasswordResetConfirmResponse, type LoginRequest, type LoginResponse, type LogoutResponse, type ProfileResponse } from './endpoint'
+import { REGISTER_PATH, RESEND_VERIFICATION_PATH, VERIFY_EMAIL_PATH, PASSWORD_RESET_PATH, PASSWORD_RESET_VERIFY_PATH, PASSWORD_RESET_CONFIRM_PATH, LOGIN_PATH, LOGOUT_PATH, PROFILE_PATH, FIREBASE_AUTH_PATH, type RegisterRequest, type RegisterResponse, type ResendVerificationRequest, type ResendVerificationResponse, type VerifyEmailRequest, type VerifyEmailResponse, type PasswordResetRequest, type PasswordResetResponse, type PasswordResetVerifyRequest, type PasswordResetVerifyResponse, type PasswordResetConfirmRequest, type PasswordResetConfirmResponse, type LoginRequest, type LoginResponse, type LogoutResponse, type ProfileResponse, type FirebaseAuthRequest, type FirebaseAuthResponse } from './endpoint'
 
 
 
@@ -36,8 +36,12 @@ export const registerApi = api.injectEndpoints({
     passwordResetConfirm: builder.mutation<PasswordResetConfirmResponse, PasswordResetConfirmRequest>({
       query: (body) => ({ url: PASSWORD_RESET_CONFIRM_PATH, method: 'POST', body }),
     }),
+    firebaseAuth: builder.mutation<FirebaseAuthResponse, FirebaseAuthRequest>({
+      query: (body) => ({ url: FIREBASE_AUTH_PATH, method: 'POST', body }),
+      invalidatesTags: ['Auth'],
+    }),
   }),
   overrideExisting: false,
 })
 
-export const { useRegisterMutation, useVerifyEmailMutation, useResendVerificationMutation, usePasswordResetMutation, usePasswordResetVerifyMutation, usePasswordResetConfirmMutation, useLoginMutation, useLogoutMutation, useProfileMutation } = registerApi
+export const { useRegisterMutation, useVerifyEmailMutation, useResendVerificationMutation, usePasswordResetMutation, usePasswordResetVerifyMutation, usePasswordResetConfirmMutation, useLoginMutation, useLogoutMutation, useProfileMutation, useFirebaseAuthMutation } = registerApi

@@ -105,16 +105,25 @@ const Header = () => {
           </nav>
 
           {/* Desktop Auth Section */}
-          <div className="hidden md:block ml-auto">
+          <div className="hidden md:flex items-center gap-3 ml-auto">
             {isAuthenticated ? (
               <UserDropdown userName={userName || 'User'} userEmail={userEmail || ''} />
             ) : (
-              <Button 
-                className="bg-black hover:bg-black/90 text-white px-6 py-2 h-9 text-sm font-medium rounded-md"
-                onClick={() => navigate('/signup')}
-              >
-                Sign up
-              </Button>
+              <>
+                <Button 
+                  variant="outline"
+                  className="bg-transparent hover:bg-black/10 text-black border-black px-6 py-2 h-9 text-sm font-medium rounded-md"
+                  onClick={() => navigate('/login')}
+                >
+                  Login
+                </Button>
+                <Button 
+                  className="bg-black hover:bg-black/90 text-white px-6 py-2 h-9 text-sm font-medium rounded-md"
+                  onClick={() => navigate('/signup')}
+                >
+                  Sign up
+                </Button>
+              </>
             )}
           </div>
 
@@ -170,21 +179,33 @@ const Header = () => {
             </nav>
             
             {/* Mobile Auth Section */}
-            <div className="pt-2">
+            <div className="pt-2 space-y-2">
               {isAuthenticated ? (
                 <div className="w-full">
                   <UserDropdown userName={userName || 'User'} userEmail={userEmail || ''} />
                 </div>
               ) : (
-                <Button 
-                  className="bg-black hover:bg-black/90 text-white px-6 py-2 h-9 text-sm font-medium rounded-md w-full"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false)
-                    navigate('/signup')
-                  }}
-                >
-                  Sign up
-                </Button>
+                <>
+                  <Button 
+                    variant="outline"
+                    className="bg-transparent hover:bg-black/10 text-black border-black px-6 py-2 h-9 text-sm font-medium rounded-md w-full"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false)
+                      navigate('/login')
+                    }}
+                  >
+                    Login
+                  </Button>
+                  <Button 
+                    className="bg-black hover:bg-black/90 text-white px-6 py-2 h-9 text-sm font-medium rounded-md w-full"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false)
+                      navigate('/signup')
+                    }}
+                  >
+                    Sign up
+                  </Button>
+                </>
               )}
             </div>
           </div>

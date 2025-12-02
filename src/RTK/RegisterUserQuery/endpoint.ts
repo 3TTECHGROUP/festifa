@@ -8,6 +8,7 @@ export const LOGIN_PATH = '/auth/login'
 export const LOGOUT_PATH = '/auth/logout'
 export const PASSWORD_RESET_ENDPOINT = '/auth/password-reset'
 export const PROFILE_PATH = '/auth/profile'
+export const FIREBASE_AUTH_PATH = '/auth/firebase'
 
 export type RegisterRequest = {
   email: string
@@ -78,3 +79,6 @@ export type LoginResponse = { success: boolean; message: string; data: LoginUser
 
 export type LogoutResponse = { success: boolean; message: string }
 export type ProfileResponse = { success: boolean; message: string; data: LoginUser }
+
+export type FirebaseAuthRequest = { id_token: string }
+export type FirebaseAuthResponse = { success: boolean; message: string; data: LoginUser }

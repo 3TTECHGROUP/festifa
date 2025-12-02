@@ -2,7 +2,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { useRegisterMutation } from '@/RTK/RegisterUserQuery/registerQuery'
+import { useRegisterMutation, useFirebaseAuthMutation } from '@/RTK/RegisterUserQuery/registerQuery'
+import { signInWithPopup, signInWithRedirect } from 'firebase/auth'
+import { auth, googleProvider } from '@/config/firebase'
 
 const Signup = () => {
   const [email, setEmail] = useState('')
@@ -10,6 +12,7 @@ const Signup = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const navigate = useNavigate()
   const [register, { isLoading }] = useRegisterMutation()
+  const [firebaseAuth, { isLoading: isGoogleLoading }] = useFirebaseAuthMutation()
 
   const validatePassword = (pwd: string) => {
     // At least one letter, one digit, one special, and 8+ chars
@@ -38,9 +41,39 @@ const Signup = () => {
     }
   }
 
-  const handleGoogleSignup = () => {
-    // Handle Google signup
-    console.log('Google signup')
+  const handleGoogleSignup = async () => {
+    try {
+      // Sign in with Google popup
+      const result = await signInWithPopup(auth, googleProvider)
+      
+      // Get the ID token from Firebase
+      const idToken = await result.user.getIdToken()
+      
+      // Send the ID token to your backend
+      const res = await firebaseAuth({ id_token: idToken }).unwrap()
+      
+      toast.success(res?.message || 'Signed up successfully with Google')
+      localStorage.setItem('isAuthenticated', 'true')
+      localStorage.setItem('user', JSON.stringify(res.data))
+      localStorage.setItem('email_verified', String(res.data.email_verified))
+      navigate('/dashboard')
+    } catch (err: any) {
+      console.error('Google signup error:', err)
+      
+      // If popup was blocked, try redirect method
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        toast.info('Popup blocked. Redirecting to Google Sign-In...')
+        try {
+          await signInWithRedirect(auth, googleProvider)
+        } catch (redirectErr: any) {
+          console.error('Redirect error:', redirectErr)
+          toast.error('Failed to redirect to Google Sign-In')
+        }
+      } else {
+        const msg = err?.data?.message || err?.error || err?.message || 'Google signup failed'
+        toast.error(msg)
+      }
+    }
   }
 
   return (
@@ -155,7 +188,8 @@ const Signup = () => {
                 <button
                   type="button"
                   onClick={handleGoogleSignup}
-                  className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                  disabled={isGoogleLoading}
+                  className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors text-sm disabled:opacity-60"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
