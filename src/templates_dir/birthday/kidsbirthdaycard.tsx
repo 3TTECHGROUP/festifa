@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { motion } from "framer-motion"
 import { Calendar, Clock, Gift, Sparkles } from "lucide-react"
 
@@ -6,6 +7,14 @@ interface BirthdayCardProps {
   age?: number
   eventDate?: string
   eventTime?: string
+}
+
+// Defaults used when rendering the template without overrides
+export const DEFAULT_PROPS = {
+  celebrantName: "Sarah Johnson",
+  age: "28",
+  eventDate: "March 15, 2025",
+  eventTime: "6:00 PM",
 }
 
 const BalloonSVG = ({ color, className }: { color: string; className?: string }) => (
@@ -28,7 +37,7 @@ const MickeyMouseSVG = ({ className }: { className?: string }) => (
   </svg>
 )
 
-export function BirthdayCard({
+function BirthdayCard({
   celebrantName = "Sarah Johnson",
   age = 28,
   eventDate = "March 15, 2025",
@@ -237,3 +246,5 @@ export function BirthdayCard({
     </section>
   )
 }
+
+export default BirthdayCard
