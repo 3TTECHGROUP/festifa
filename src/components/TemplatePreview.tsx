@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { getTemplateFile } from '@/service/templateLoader'
-import { TemplateSummary } from '@/service/templateLoader'
+import type { TemplateSummary } from '@/service/templateLoader'
 
 const TemplatePreview = ({ tpl }: { tpl: TemplateSummary }) => {
   const [Comp, setComp] = useState<React.ComponentType<any> | null>(null)

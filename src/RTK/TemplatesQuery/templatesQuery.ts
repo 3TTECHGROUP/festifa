@@ -10,7 +10,11 @@ import {
 export const templatesApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getTemplates: builder.query<GetTemplatesResponse, GetTemplatesParams | void>({
-      query: (params) => ({ url: GET_TEMPLATES_PATH, params }),
+      query: (params: GetTemplatesParams | void) => ({
+        url: GET_TEMPLATES_PATH,
+        // ensure params is never `void` to satisfy FetchArgs typing
+        params: (params ?? undefined) as GetTemplatesParams | undefined,
+      }),
     }),
     getTemplateById: builder.query<GetTemplateByIdResponse, string>({
       query: (id) => ({ url: GET_TEMPLATE_BY_ID_PATH(id) }),
