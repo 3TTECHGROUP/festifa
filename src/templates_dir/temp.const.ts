@@ -2,7 +2,7 @@
 // Map these IDs to enable price/currency enrichment from API
 
 export const TEMP_CONST_WEDDING = [
-    { id: 1, dbId: "", category: "Wedding", title: "Wedding Item 1", file: "wedding-1.txt" },
+    { id: 1, dbId: "8733d20d-eb23-4dab-a09e-e3d48027ea6c", category: "Wedding", title: "Wedding Invitation Template", file: "weddingcardtest.tsx" },
     { id: 2, dbId: "", category: "Wedding", title: "Wedding Item 2", file: "wedding-2.txt" },
     { id: 3, dbId: "", category: "Wedding", title: "Wedding Item 3", file: "wedding-3.txt" },
 ];
