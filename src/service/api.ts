@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import type { BaseQueryFn, FetchArgs } from '@reduxjs/toolkit/query'
@@ -6,10 +7,13 @@ import type { FetchBaseQueryError } from '@reduxjs/toolkit/query'
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || '/api'),
   credentials: 'include',
-  prepareHeaders: (headers) => {
+  prepareHeaders: (headers, { getState: _getState }) => {
     const token = localStorage.getItem('authToken')
     if (token) headers.set('Authorization', `Bearer ${token}`)
-    headers.set('Content-Type', 'application/json')
+    // Only set Content-Type for non-FormData requests
+    if (!headers.has('content-type')) {
+      headers.set('Content-Type', 'application/json')
+    }
     return headers
   },
 })
