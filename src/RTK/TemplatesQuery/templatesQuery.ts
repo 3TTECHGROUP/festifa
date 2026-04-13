@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { api } from '@/service/api'
 import { 
   GET_TEMPLATES_PATH, 
@@ -10,10 +11,9 @@ import {
 export const templatesApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getTemplates: builder.query<GetTemplatesResponse, GetTemplatesParams | void>({
-      query: (params: GetTemplatesParams | void) => ({
+      query: (_params: GetTemplatesParams | void) => ({
         url: GET_TEMPLATES_PATH,
         // ensure params is never `void` to satisfy FetchArgs typing
-        params: (params ?? undefined) as GetTemplatesParams | undefined,
       }),
     }),
     getTemplateById: builder.query<GetTemplateByIdResponse, string>({

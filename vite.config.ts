@@ -18,6 +18,12 @@ export default defineConfig({
         secure: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/s3': {
+        target: 'https://festifa.s3.eu-west-2.amazonaws.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/s3/, ''),
+      },
     },
   },
 })

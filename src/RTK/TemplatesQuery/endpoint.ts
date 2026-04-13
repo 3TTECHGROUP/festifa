@@ -21,6 +21,7 @@ export type TemplateProps = {
 }
 
 export type Template = {
+  host: string
   id: string
   category_id?: string
   category?: string
