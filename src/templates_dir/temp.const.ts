@@ -3,7 +3,7 @@
 
 export const TEMP_CONST_WEDDING = [
     { id: 1, dbId: "8733d20d-eb23-4dab-a09e-e3d48027ea6c", category: "Wedding", title: "Wedding Invitation Template", file: "weddingcardtest.tsx" },
-    { id: 2, dbId: "", category: "Wedding", title: "Wedding Item 2", file: "wedding-2.txt" },
+    { id: 2, dbId: "43307ca6-f035-4d8d-8a00-dd93704f775a", category: "Wedding", title: "Wedding Invitation", file: "weddingcardtest2.tsx" },
     { id: 3, dbId: "", category: "Wedding", title: "Wedding Item 3", file: "wedding-3.txt" },
 ];
 
