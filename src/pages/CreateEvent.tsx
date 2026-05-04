@@ -1688,7 +1688,6 @@ const CreateEvent = () => {
                           Template Fields
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {console.log(templateData, 'Template Data')}
                           {templateData.data.props
                             .filter(
                               (prop) =>
@@ -1698,7 +1697,6 @@ const CreateEvent = () => {
                             .map((prop) => {
                               const key = prop.prop_name;
                               const lname = (key || "").toLowerCase();
-                              const dataType = prop.prop_data_type?.toLowerCase() || 'string';
                               const isDate = lname.includes("date");
                               const isTime = lname.includes("time");
                               const isMessage = lname.includes("message");
@@ -1711,13 +1709,17 @@ const CreateEvent = () => {
                                 "qty",
                                 "quantity",
                               ].some((h) => lname.includes(h) && !isMessage);
-                              const inputType = isDate
-                                ? "date"
-                                : isTime
-                                  ? "time"
-                                  : isNumber
-                                    ? "number"
-                                    : "text";
+                              const inputType: "text" | "date" | "number" | "time" | "textarea" | "file" = isImage
+                                ? "file"
+                                : isMessage
+                                  ? "textarea"
+                                  : isDate
+                                    ? "date"
+                                    : isTime
+                                      ? "time"
+                                      : isNumber
+                                        ? "number"
+                                        : "text";
                               
                               return (
                                 <div key={prop.id} className="flex flex-col">
