@@ -43,6 +43,8 @@ const WeddingInvitationCard: React.FC<WeddingCardProps> = (props) => {
     image_url,
   } = { ...DEFAULT_PROPS, ...props }
 
+  console.log(image_url, 'IMG-URL')
+
   return (
     <div style={styles.page}>
       <motion.div

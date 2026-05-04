@@ -101,6 +101,7 @@ const CreateEvent = () => {
   const [LoadedTemplate, setLoadedTemplate] =
     useState<React.ComponentType<any> | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
   const [templateFields, setTemplateFields] = useState<Record<string, string>>(
     {},
   );
@@ -152,7 +153,19 @@ const CreateEvent = () => {
     const entries = Object.entries(templateFields).filter(([, v]) =>
       typeof v === "string" ? v.trim() !== "" : v != null,
     );
-    return Object.fromEntries(entries);
+    
+    // Map image key to image_url for template compatibility
+    const mappedEntries = entries.map(([key, value]) => {
+      if (key === "image" || key === "") {
+        return ["image_url", value];
+      }
+      return [key, value];
+    });
+    
+    // Filter out the original image key to avoid conflicts
+    const filteredEntries = mappedEntries.filter(([key]) => key !== "image" && key !== "");
+    
+    return Object.fromEntries(filteredEntries);
   }, [templateFields]);
 
   const timezones = useMemo(() => {
@@ -593,7 +606,7 @@ const CreateEvent = () => {
       const result = await createEventMutation(payload).unwrap();
 
       toast.success(result?.message || "Event created successfully");
-      navigate("/dashboard/events");
+      navigate("/dashboard");
     } catch (error: any) {
       const validationMessage = error?.data?.error?.details?.[0]?.message;
       toast.error(validationMessage || error?.data?.message || error?.data?.error || error?.message || "Failed to create event");
@@ -622,10 +635,38 @@ const CreateEvent = () => {
   }, []);
 
   const handleToggle = useCallback((field: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: !prev[field as keyof typeof prev],
-    }));
+    setFormData((prev) => {
+      const newValue = !prev[field as keyof typeof prev];
+      
+      // When toggling "This Event is Free?", update all tickets accordingly
+      if (field === 'isFreeEvent') {
+        setTickets((prevTickets) =>
+          prevTickets.map((t) => ({ ...t, is_free: newValue, price: newValue ? '0' : t.price || '' }))
+        );
+      }
+      
+      // Prevent both all-day and multi-day from being ON at the same time
+      if (field === 'isAllDay' && newValue && prev.isMultiDayEvent) {
+        return {
+          ...prev,
+          isAllDay: true,
+          isMultiDayEvent: false,
+        };
+      }
+      
+      if (field === 'isMultiDayEvent' && newValue && prev.isAllDay) {
+        return {
+          ...prev,
+          isMultiDayEvent: true,
+          isAllDay: false,
+        };
+      }
+      
+      return {
+        ...prev,
+        [field]: newValue,
+      };
+    });
   }, []);
 
   const handleTemplateSelect = useCallback((template: TemplateSummary) => {
@@ -917,6 +958,7 @@ const CreateEvent = () => {
     async function load() {
       try {
         if (selectedLocalTemplate) {
+          setIsLoadingTemplate(true);
           setLoadError(null);
           const id = String(selectedLocalTemplate.localId);
           console.log(
@@ -1005,6 +1047,8 @@ const CreateEvent = () => {
         console.error("Failed to load local template module:", e);
         setLoadError("Failed to load template");
         if (!cancelled) setLoadedTemplate(null);
+      } finally {
+        if (!cancelled) setIsLoadingTemplate(false);
       }
     }
     load();
@@ -1264,9 +1308,19 @@ const CreateEvent = () => {
           {LoadedTemplate && selectedLocalTemplate ? (
             // Display locally-registered template preview (e.g., kidsbirthdaycard)
             <div className="bg-white rounded-[10px] overflow-hidden h-64 md:h-[550px] relative group">
-              <div className="w-full h-full overflow-auto">
-                <LoadedTemplate {...appliedTemplateProps} />
-              </div>
+              {isLoadingTemplate ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                </div>
+              ) : loadError ? (
+                <div className="w-full h-full flex items-center justify-center text-red-500 text-sm">
+                  Failed to load template
+                </div>
+              ) : (
+                <div className="w-full h-full overflow-auto">
+                  <LoadedTemplate key={JSON.stringify(appliedTemplateProps)} {...appliedTemplateProps} />
+                </div>
+              )}
               <button
                 onClick={handleClearTemplate}
                 className="absolute top-3 right-3 p-2 bg-black/70 hover:bg-black rounded-full transition-colors"
@@ -1429,7 +1483,7 @@ const CreateEvent = () => {
                   <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
                     type="text"
-                    placeholder="Location"
+                    placeholder="Street Address"
                     value={formData.location}
                     onChange={(e) =>
                       handleInputChange("location", e.target.value)
@@ -1634,6 +1688,7 @@ const CreateEvent = () => {
                           Template Fields
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {console.log(templateData, 'Template Data')}
                           {templateData.data.props
                             .filter(
                               (prop) =>
@@ -1643,50 +1698,131 @@ const CreateEvent = () => {
                             .map((prop) => {
                               const key = prop.prop_name;
                               const lname = (key || "").toLowerCase();
+                              const dataType = prop.prop_data_type?.toLowerCase() || 'string';
                               const isDate = lname.includes("date");
                               const isTime = lname.includes("time");
+                              const isMessage = lname.includes("message");
+                              // Empty prop_name indicates image field based on backend response
+                              const isImage = lname.includes("image") || lname.includes("photo") || lname.includes("picture") || key === "";
                               const isNumber = [
                                 "age",
                                 "count",
                                 "number",
                                 "qty",
                                 "quantity",
-                              ].some((h) => lname.includes(h));
-                              const type = isDate
+                              ].some((h) => lname.includes(h) && !isMessage);
+                              const inputType = isDate
                                 ? "date"
                                 : isTime
                                   ? "time"
                                   : isNumber
                                     ? "number"
                                     : "text";
+                              
                               return (
                                 <div key={prop.id} className="flex flex-col">
                                   <label className="text-xs text-gray-600 mb-1">
-                                    {prop.prop_name}
+                                    {prop.prop_name || "Image"}
                                     {prop.is_required && (
                                       <span className="text-red-500"> *</span>
                                     )}
                                   </label>
-                                  <Input
-                                    type={type as any}
-                                    placeholder={
-                                      type === "text"
-                                        ? prop.prop_name
-                                        : undefined
-                                    }
-                                    value={
-                                      templateFields[key] ??
-                                      templateDefaults[key] ??
-                                      ""
-                                    }
-                                    onChange={(e) =>
-                                      setTemplateFields((prev) => ({
-                                        ...prev,
-                                        [key]: e.target.value,
-                                      }))
-                                    }
-                                    className="h-10"
-                                  />
+                                  {isImage ? (
+                                    <div className="space-y-2">
+                                      {templateFields[key] ? (
+                                        <div className="relative">
+                                          <img
+                                            src={templateFields[key]}
+                                            alt="Uploaded"
+                                            className="w-full h-32 object-cover rounded-lg"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={async () => {
+                                              const s3Key = templateFields[`${key}_s3_key`];
+                                              if (s3Key) {
+                                                try {
+                                                  await deleteS3Object(s3Key);
+                                                } catch (error) {
+                                                  console.error('Failed to delete template image:', error);
+                                                }
+                                              }
+                                              setTemplateFields((prev) => {
+                                                const newFields = { ...prev };
+                                                delete newFields[key];
+                                                delete newFields[`${key}_s3_key`];
+                                                return newFields;
+                                              });
+                                            }}
+                                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                          >
+                                            <X className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <Input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                              try {
+                                                const { url, key: s3Key } = await uploadImageToS3(file);
+                                                setTemplateFields((prev) => ({
+                                                  ...prev,
+                                                  [key]: url,
+                                                  [`${key}_s3_key`]: s3Key,
+                                                }));
+                                              } catch (error) {
+                                                console.error('Failed to upload template image:', error);
+                                              }
+                                            }
+                                          }}
+                                        />
+                                      )}
+                                    </div>
+                                  ) : inputType === 'textarea' ? (
+                                    <textarea
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none resize-none text-sm"
+                                      rows={3}
+                                      placeholder={prop.prop_name}
+                                      value={
+                                        templateFields[key] ??
+                                        templateDefaults[key] ??
+                                        ""
+                                      }
+                                      onChange={(e) =>
+                                        setTemplateFields((prev) => ({
+                                          ...prev,
+                                          [key]: e.target.value,
+                                        }))
+                                      }
+                                    />
+                                  ) : (
+                                    <Input
+                                      type={inputType as any}
+                                      placeholder={
+                                        inputType === "text"
+                                          ? prop.prop_name
+                                          : undefined
+                                      }
+                                      value={
+                                        templateFields[key] ??
+                                        templateDefaults[key] ??
+                                        ""
+                                      }
+                                      onChange={(e) =>
+                                        setTemplateFields((prev) => ({
+                                          ...prev,
+                                          [key]: e.target.value,
+                                        }))
+                                      }
+                                      className="h-10"
+                                      step={inputType === 'number' ? 'any' : undefined}
+                                      min={inputType === 'number' ? '0' : undefined}
+                                      accept={inputType === 'file' ? 'image/*' : undefined}
+                                    />
+                                  )}
                                 </div>
                               );
                             })}
@@ -1696,7 +1832,8 @@ const CreateEvent = () => {
 
                   {/* Toggle Options */}
                   <div className="space-y-3 md:space-y-3">
-                    <div className="flex items-center justify-between comman-box-main-grid">
+                    {/* Commented out All the day event toggle */}
+                    {/* <div className="flex items-center justify-between comman-box-main-grid">
                       <span className="text-gray-700 text-base">
                         All the day event
                       </span>
@@ -1714,7 +1851,7 @@ const CreateEvent = () => {
                           }`}
                         />
                       </button>
-                    </div>
+                    </div> */}
                     <div className="flex items-center justify-between comman-box-main-grid">
                       <span className="text-gray-700 text-base">
                         This Event is Free ?
@@ -2466,16 +2603,21 @@ const CreateEvent = () => {
                         />
                       </div>
                       <div className="md:col-span-3">
-                        <Input
-                          value={t.is_free ? "0" : t.price}
-                          onChange={(e) =>
-                            updateTicket(t.id, { price: e.target.value })
-                          }
-                          placeholder="Ticket Price"
-                          type="number"
-                          disabled={t.is_free}
-                          className="h-10 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-                        />
+                        {t.is_free ? (
+                          <div className="h-10 px-3 flex items-center text-gray-700 bg-gray-100 rounded-lg">
+                            Free
+                          </div>
+                        ) : (
+                          <Input
+                            value={t.price}
+                            onChange={(e) =>
+                              updateTicket(t.id, { price: e.target.value })
+                            }
+                            placeholder="Ticket Price"
+                            type="number"
+                            className="h-10"
+                          />
+                        )}
                       </div>
                       <div className="md:col-span-3">
                         <Input
