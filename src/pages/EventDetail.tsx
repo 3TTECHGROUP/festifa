@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Heart, MessageCircle, Eye, Share2, Calendar, Clock, MapPin, Ticket, User, ArrowRight, MoreHorizontal } from 'lucide-react'
-import { findEventById, mockEvents } from '@/data/mockEvents'
+import { Heart, MessageCircle, Eye, Share2, Calendar, Clock, MapPin, Ticket, User, ArrowRight, MoreHorizontal, AlertCircle, FileText } from 'lucide-react'
+import { mockEvents } from '@/data/mockEvents'
+import { useGetEventDetailQuery } from '@/RTK/EventsQuery/eventsQuery'
 import RegistrationModal from '@/components/RegistrationModal'
 import PaymentModal from '@/components/PaymentModal'
 
@@ -13,27 +14,78 @@ const EventDetail = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [newComment, setNewComment] = useState('')
 
-  // Find the event by ID from URL params
-  const eventId = id ? parseInt(id, 10) : 1
-  const event = findEventById(eventId)
+  // Fetch detail via API
+  const { data, isFetching, isError, refetch } = useGetEventDetailQuery({ id: id || '1' })
 
-  // If event not found, show error or redirect
-  if (!event) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Event Not Found</h1>
-          <p className="text-gray-600 mb-6">The event you're looking for doesn't exist.</p>
-          <Link 
-            to="/events" 
-            className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors"
-          >
-            Back to Events
-          </Link>
+  const event = useMemo(() => {
+    const e = data?.data
+    if (!e) return null
+    const start = e.start_date ? new Date(e.start_date) : null
+    return {
+      id: e.id,
+      title: e.title,
+      organizer: e.user?.name || e.host || 'Unknown',
+      date: start ? start.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '',
+      time: start ? start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '',
+      location: e.location || '',
+      image: e.media_url || 'https://via.placeholder.com/1200x600?text=Event',
+      description: e.description || '',
+      tags: [] as string[],
+      ticketPrice: e.tickets && e.tickets[0]?.price ? Number(e.tickets[0].price) : 50,
+      isFree: !!e.is_free_event,
+    }
+  }, [data])
+
+  const SkeletonDetail = () => (
+    <div className="container custom-hero-section-main animate-pulse">
+      <div className='mt-6'>
+        <div className="w-full h-64 bg-gray-200 rounded-lg" />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 py-8">
+        <div className="space-y-4">
+          <div className="h-8 w-1/2 bg-gray-200 rounded" />
+          <div className="h-5 w-1/3 bg-gray-200 rounded" />
+          <div className="grid grid-cols-2 gap-3">
+            {[...Array(4)].map((_, i) => (<div key={i} className="h-12 bg-gray-200 rounded" />))}
+          </div>
+          <div className="h-24 bg-gray-200 rounded" />
+        </div>
+        <div className="space-y-4">
+          {[...Array(2)].map((_, i) => (<div key={i} className="h-16 bg-gray-200 rounded" />))}
         </div>
       </div>
-    )
-  }
+    </div>
+  )
+
+  const ErrorState = () => (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center text-center">
+      <div>
+        <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4 mx-auto">
+          <AlertCircle className="w-8 h-8 text-red-500" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">Failed to load event</h3>
+        <p className="text-gray-600 text-sm mb-4">Please try again.</p>
+        <button onClick={() => refetch()} className="inline-flex items-center px-4 py-2 rounded-full bg-black text-white text-sm hover:bg-gray-800 transition-colors">Try again</button>
+      </div>
+    </div>
+  )
+
+  const EmptyState = () => (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center text-center">
+      <div>
+        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 mx-auto">
+          <FileText className="w-12 h-12 text-gray-400" />
+        </div>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">Event Not Found</h3>
+        <p className="text-gray-600 mb-6">The event you're looking for doesn't exist.</p>
+        <Link to="/events" className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors">Back to Events</Link>
+      </div>
+    </div>
+  )
+
+  if (isFetching) return <SkeletonDetail />
+  if (isError) return <ErrorState />
+  if (!event) return <EmptyState />
 
   // Get similar events (exclude current event)
   const similarEvents = mockEvents.filter(e => e.id !== event.id).slice(0, 4)

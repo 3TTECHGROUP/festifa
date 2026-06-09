@@ -68,3 +68,123 @@ export type CreateEventResponse = {
   message?: string
   data?: any
 }
+
+// Registered Events (Upcoming/Past) endpoint and types
+export const REGISTERED_EVENTS_PATH = '/events/registered-events'
+
+export type RegisteredEventsFilter = 'upcoming' | 'past'
+
+export type RegisteredEventsParams = {
+  page?: number
+  limit?: number
+  filter: RegisteredEventsFilter
+}
+
+export type RegisteredEventsPagination = {
+  current_page: number
+  limit: number
+  has_next_page: boolean
+  has_prev_page: boolean
+}
+
+export type RegisteredEventItem = {
+  id: string
+  user_id?: string
+  category_id?: string
+  host?: string
+  title: string
+  description?: string
+  location?: string
+  media_url?: string
+  start_date?: string
+  end_date?: string
+  is_virtual?: boolean
+  has_liked?: boolean
+  is_all_day_event?: boolean
+  is_ticketing_enabled?: boolean
+  is_free_event?: boolean
+  is_multimedia_enabled?: boolean
+  is_engagement_enabled?: boolean
+  is_form_enabled?: boolean
+  comment_count?: number
+  view_count?: number
+  like_count?: number
+  created_at?: string
+  user?: { name?: string }
+  category?: { id: string; category: string; priority?: number }
+  sessions?: Array<{
+    id: string
+    name: string
+    date?: string
+    timezone?: string
+    start_time?: string
+    end_time?: string
+  }>
+  tickets?: Array<{
+    id: string
+    event_id: string
+    currency_id: string
+    currency?: string
+    event?: string
+    name: string
+    description?: string
+    price?: number
+    quantity?: number
+    is_free?: boolean
+    is_predefined?: boolean
+  }>
+  registrations?: any[]
+  form?: any
+}
+
+export type RegisteredEventsResponse = {
+  success: boolean
+  message: string
+  pagination: RegisteredEventsPagination
+  data: RegisteredEventItem[]
+}
+
+// User Events ("My events") endpoint and types
+export const USER_EVENTS_PATH = '/events/user-events'
+
+export type UserEventsParams = {
+  page?: number
+  limit?: number
+}
+
+export type UserEventsResponse = RegisteredEventsResponse
+
+// Public Events list endpoint and types
+export const EVENTS_LIST_PATH = '/events'
+
+export type EventsListParams = {
+  page?: number
+  limit?: number
+  category_id?: string
+  q?: string
+  date_range?: string
+  distance?: number
+  latitude?: number
+  longitude?: number
+  event_type?: string
+}
+
+export type EventsListResponse = {
+  success: boolean
+  message: string
+  pagination?: RegisteredEventsPagination
+  data: RegisteredEventItem[]
+}
+
+// Event detail endpoint and types
+export const EVENT_DETAIL_BASE = '/events'
+
+export type EventDetailParams = {
+  id: string | number
+}
+
+export type EventDetailResponse = {
+  success: boolean
+  message: string
+  data: RegisteredEventItem
+}
