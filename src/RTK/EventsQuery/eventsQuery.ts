@@ -43,11 +43,11 @@ export const eventsApi = api.injectEndpoints({
       }),
       providesTags: ['Events'],
     }),
-    getEventsList: builder.query<EventsListResponse, EventsListParams | void>({
+    getEventsList: builder.query<EventsListResponse, EventsListParams | undefined>({
       query: (params) => ({
         url: EVENTS_LIST_PATH,
         method: 'GET',
-        params,
+        params: (params ?? undefined) as Record<string, any> | undefined,
       }),
       providesTags: ['Events'],
     }),
