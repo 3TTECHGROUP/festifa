@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import {SettingsIcon } from 'lucide-react'
+import {SettingsIcon, FileText, AlertCircle } from 'lucide-react'
 import SearchFilter from '@/components/SearchFilter'
 import EventCard from '@/components/EventCard'
 import FilterModal from '@/components/FilterModal'
-import { mockEvents } from '@/data/mockEvents'
 import eventPageBg from '@/assets/images/event-page-bg.png'
+import { useGetEventsListQuery } from '@/RTK/EventsQuery/eventsQuery'
 
 // Mock categories data
 const categories = [
@@ -21,6 +21,62 @@ const categories = [
 const Events = () => {
   const [selectedCategory, setSelectedCategory] = useState('Upcoming Events')
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
+  const { data, isFetching, isError, refetch } = useGetEventsListQuery({ page: 1, limit: 10 })
+
+  const apiEvents = useMemo(() => {
+    const items = data?.data || []
+    return items.map((e) => {
+      const start = e.start_date ? new Date(e.start_date) : null
+      return {
+        id: Math.abs([...e.id].reduce((a, c) => a + c.charCodeAt(0), 0)),
+        title: e.title,
+        organizer: e.user?.name || e.host || 'Unknown',
+        date: start ? start.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '',
+        time: start ? start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '',
+        location: e.location || '',
+        image: e.media_url || 'https://via.placeholder.com/600x400?text=Event',
+        isFree: !!e.is_free_event,
+      }
+    })
+  }, [data])
+
+  const SkeletonGrid = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {[...Array(8)].map((_, i) => (
+        <div key={i} className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="aspect-video bg-gray-200 animate-pulse" />
+          <div className="p-4 space-y-3">
+            <div className="h-5 w-2/3 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
+  const ErrorState = () => (
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+        <AlertCircle className="w-8 h-8 text-red-500" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-1">Failed to load events</h3>
+      <p className="text-gray-600 text-sm mb-4">Please try again.</p>
+      <Button onClick={() => refetch()} className="bg-black text-white hover:bg-gray-800 rounded-full">Try again</Button>
+    </div>
+  )
+
+  const EmptyState = () => (
+    <div className="flex flex-col items-center justify-center py-16 px-4">
+      <div className="mb-6">
+        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <FileText className="w-12 h-12 text-gray-400" />
+        </div>
+      </div>
+      <h3 className="text-xl font-semibold text-gray-900 mb-2">No events found</h3>
+      <p className="text-gray-600 text-center mb-2 max-w-md">Try adjusting your search or check back later.</p>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -97,11 +153,20 @@ const Events = () => {
         </div>
 
         {/* Events Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {mockEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
+        {isFetching ? (
+          <SkeletonGrid />
+        ) : isError ? (
+          <ErrorState />
+        ) : (apiEvents.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {apiEvents.map((event) => (
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              <EventCard key={event.id} event={event as any} />
+            ))}
+          </div>
+        ))}
       </div>
 
       <FilterModal isOpen={isFilterModalOpen} onClose={() => setIsFilterModalOpen(false)} onApplyFilter={() => setIsFilterModalOpen(false)} />

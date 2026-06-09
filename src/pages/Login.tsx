@@ -60,8 +60,12 @@ const Login = () => {
       toast.success(res?.message || 'Logged in successfully')
       localStorage.setItem('isAuthenticated', 'true')
       localStorage.setItem('user', JSON.stringify(res.data))
-      // localStorage.setItem('authToken', String(res.data.token))
-      localStorage.setItem('email_verified', String(res.data.email_verified))
+      // Persist access token if backend returns it
+      const token = (res as any)?.data?.token || (res as any)?.token
+      if (token) {
+        localStorage.setItem('authToken', String(token))
+      }
+      localStorage.setItem('email_verified', String((res as any)?.data?.email_verified))
       navigate('/dashboard')
     } catch (err: any) {
       const msg = err?.data?.message || err?.error || 'Login failed'
