@@ -88,7 +88,7 @@ const EventDetail = () => {
   if (!event) return <EmptyState />
 
   // Get similar events (exclude current event)
-  const similarEvents = mockEvents.filter(e => e.id !== event.id).slice(0, 4)
+  const similarEvents = mockEvents.filter(e => String(e.id) !== String(event.id)).slice(0, 4)
 
   const handleLike = () => {
     if (isLiked) {

@@ -8,7 +8,7 @@ import { useGetRegisteredEventsQuery, useGetUserEventsQuery } from '@/RTK/Events
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'my-events' | 'past'>('upcoming')
   const [clickedCard, setClickedCard] = useState<string | number | null>(null)
-  const [page, setPage] = useState(1)
+  const [page] = useState(1)
   const [limit] = useState(10)
 
   const filter = activeTab === 'past' ? 'past' : activeTab === 'upcoming' ? 'upcoming' : undefined
