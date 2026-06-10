@@ -1,10 +1,20 @@
 import { Calendar, MapPin, User } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { type Event } from '@/data/mockEvents'
+
+type BasicEvent = {
+  id: string | number
+  title: string
+  organizer: string
+  date: string
+  time: string
+  location: string
+  image: string
+  isFree?: boolean
+}
 
 interface EventCardProps {
-  event: Event
-  onClick?: (id: number) => void
+  event: BasicEvent
+  onClick?: (id: string | number) => void
   className?: string
 }
 
