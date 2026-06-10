@@ -28,7 +28,7 @@ const Events = () => {
     return items.map((e) => {
       const start = e.start_date ? new Date(e.start_date) : null
       return {
-        id: Math.abs([...e.id].reduce((a, c) => a + c.charCodeAt(0), 0)),
+        id: e.id,
         title: e.title,
         organizer: e.user?.name || e.host || 'Unknown',
         date: start ? start.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '',
@@ -162,8 +162,7 @@ const Events = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {apiEvents.map((event) => (
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              <EventCard key={event.id} event={event as any} />
+              <EventCard key={event.id} event={event} />
             ))}
           </div>
         ))}
