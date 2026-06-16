@@ -3,7 +3,8 @@ export const GET_CATEGORIES_PATH = '/categories'
 export type EventCategory = {
   id: string
   category: string
-  priority: number
+  priority: number | string
+  created_at?: string
 }
 
 export type GetCategoriesResponse = {
