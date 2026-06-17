@@ -1,27 +1,46 @@
-import { useMemo, useState } from 'react'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import {SettingsIcon, FileText, AlertCircle } from 'lucide-react'
+import {SettingsIcon, FileText, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import SearchFilter from '@/components/SearchFilter'
 import EventCard from '@/components/EventCard'
 import FilterModal from '@/components/FilterModal'
 import eventPageBg from '@/assets/images/event-page-bg.png'
 import { useGetEventsListQuery } from '@/RTK/EventsQuery/eventsQuery'
-
-// Mock categories data
-const categories = [
-  "Upcoming Events",
-  "Events Near Me", 
-  "Night Life",
-  "Music",
-  "Careers",
-  "Food and Drinks",
-  "Arts"
-]
+import { useGetCategoriesQuery } from '@/RTK/CategoriesQuery/categoriesQuery'
 
 const Events = () => {
-  const [selectedCategory, setSelectedCategory] = useState('Upcoming Events')
+  // Top-row category chips driven by API
+  const { data: categoriesData } = useGetCategoriesQuery()
+  const categoryChips = useMemo(() => {
+    const api = categoriesData?.data || []
+    return [{ id: 'all', label: 'All' }, ...api.map((c) => ({ id: c.id, label: c.category }))]
+  }, [categoriesData])
+
+  // Horizontal scroll ref for category chips
+  const chipsScrollRef = useRef<HTMLDivElement | null>(null)
+
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
-  const { data, isFetching, isError, refetch } = useGetEventsListQuery({ page: 1, limit: 10 })
+  const [searchQuery, setSearchQuery] = useState('')
+  const [ticketType, setTicketType] = useState<'Tickets' | 'Free' | 'Paid'>('Tickets')
+  const [filters, setFilters] = useState<{
+    category_id?: string
+    q?: string
+    date_range?: string
+    distance?: number
+    latitude?: number
+    longitude?: number
+    event_type?: string
+  }>({})
+
+  const params = useMemo(() => ({
+    page: 1,
+    limit: 10,
+    ...filters,
+  }), [filters])
+
+  const { data, isFetching, isError, refetch } = useGetEventsListQuery(params)
 
   const apiEvents = useMemo(() => {
     const items = data?.data || []
@@ -78,6 +97,28 @@ const Events = () => {
     </div>
   )
 
+  const applySearch = () => {
+    setFilters((prev) => ({ ...prev, q: searchQuery || undefined, event_type: ticketType === 'Tickets' ? undefined : ticketType.toLowerCase() }))
+  }
+
+  const mapDateRange = (label: string): string | undefined => {
+    switch (label) {
+      case 'This Week':
+        return 'week'
+      case 'This Month':
+        return 'month'
+      case 'This Year':
+        return 'year'
+      default:
+        return undefined
+    }
+  }
+
+  const parseDistance = (label: string): number | undefined => {
+    const n = parseInt(label)
+    return Number.isFinite(n) ? n : undefined
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -114,7 +155,13 @@ const Events = () => {
           </p>
 
           {/* Search Bar */}
-          <SearchFilter />
+          <SearchFilter 
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            ticketType={ticketType}
+            onTicketTypeChange={(t) => setTicketType(t as any)}
+            onSearch={applySearch}
+          />
         </div>
       </div>
 
@@ -131,25 +178,64 @@ const Events = () => {
           </Button>
         </div>
 
-        {/* Category Filters */}
-        <div className="flex flex-wrap gap-3 mb-8">
-          {categories.map((category) => (
-            <Button
-              key={category}
-              variant={selectedCategory === category ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory(category)}
-              className={`
-                px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 ease-in-out
-                ${selectedCategory === category
-                  ? "bg-black text-white hover:bg-gray-800 shadow-sm"
-                  : "text-gray-700 bg-gray-100 border-gray-100 hover:bg-gray-200"
-                }
-              `}
-            >
-              {category}
-            </Button>
-          ))}
+        {/* Category Filters - single line, horizontally scrollable with controls */}
+        <div className="mb-8 -mx-4 group relative">
+          <div
+            ref={chipsScrollRef}
+            className="px-4 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          >
+            <div className="flex gap-2 md:gap-3 whitespace-nowrap">
+              {categoryChips.map((c) => (
+                <Button
+                  key={c.id}
+                  variant={selectedCategory === c.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setSelectedCategory(c.id)
+                    setFilters((prev) => ({
+                      ...prev,
+                      category_id: c.id === 'all' ? undefined : c.id,
+                    }))
+                  }}
+                  className={`
+                    shrink-0 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 ease-in-out
+                    ${selectedCategory === c.id
+                      ? "bg-black text-white hover:bg-gray-800 shadow-sm"
+                      : "text-gray-700 bg-gray-100 border-gray-100 hover:bg-gray-200"
+                    }
+                  `}
+                >
+                  {c.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Prev / Next controls (show on hover) */}
+          <button
+            type="button"
+            aria-label="Scroll left"
+            className="hidden md:flex items-center justify-center absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white text-gray-700 shadow border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={() => {
+              const el = chipsScrollRef.current
+              if (!el) return
+              el.scrollBy({ left: -Math.max(200, el.clientWidth * 0.8), behavior: 'smooth' })
+            }}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Scroll right"
+            className="hidden md:flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white text-gray-700 shadow border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={() => {
+              const el = chipsScrollRef.current
+              if (!el) return
+              el.scrollBy({ left: Math.max(200, el.clientWidth * 0.8), behavior: 'smooth' })
+            }}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Events Grid */}
@@ -168,7 +254,22 @@ const Events = () => {
         ))}
       </div>
 
-      <FilterModal isOpen={isFilterModalOpen} onClose={() => setIsFilterModalOpen(false)} onApplyFilter={() => setIsFilterModalOpen(false)} />
+      <FilterModal 
+        isOpen={isFilterModalOpen} 
+        onClose={() => setIsFilterModalOpen(false)} 
+        onApplyFilter={(f) => {
+          setFilters((prev) => ({
+            ...prev,
+            category_id: f.categoryId || undefined,
+            date_range: mapDateRange(f.dateType),
+            distance: parseDistance(f.distance),
+            latitude: f.latitude ?? prev.latitude,
+            longitude: f.longitude ?? prev.longitude,
+            // keep existing q and event_type set via the top search bar
+          }))
+          setIsFilterModalOpen(false)
+        }} 
+      />
     </div>
   )
 }

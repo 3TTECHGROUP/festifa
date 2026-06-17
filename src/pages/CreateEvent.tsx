@@ -1628,7 +1628,7 @@ const CreateEvent = () => {
                     <SelectContent>
                       {(categoriesData?.data ?? [])
                         .slice()
-                        .sort((a, b) => a.priority - b.priority)
+                        .sort((a, b) => Number(a.priority) - Number(b.priority))
                         .map((category) => (
                           <SelectItem
                             key={category.id}
