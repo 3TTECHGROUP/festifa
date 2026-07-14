@@ -16,6 +16,12 @@ import {
   EVENT_DETAIL_BASE,
   type EventDetailParams,
   type EventDetailResponse,
+  UPDATE_EVENT_PATH,
+  type UpdateEventRequest,
+  type UpdateEventResponse,
+  TRENDING_EVENTS_PATH,
+  type TrendingEventsParams,
+  type TrendingEventsResponse,
 } from './endpoint'
 
 export const eventsApi = api.injectEndpoints({
@@ -24,6 +30,14 @@ export const eventsApi = api.injectEndpoints({
       query: (body) => ({
         url: CREATE_EVENT_PATH,
         method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Events'],
+    }),
+    updateEvent: builder.mutation<UpdateEventResponse, UpdateEventRequest>({
+      query: ({ id, body }) => ({
+        url: `${UPDATE_EVENT_PATH}/${id}`,
+        method: 'PATCH',
         body,
       }),
       invalidatesTags: ['Events'],
@@ -59,8 +73,16 @@ export const eventsApi = api.injectEndpoints({
       }),
       providesTags: ['Events'],
     }),
+    getTrendingEvents: builder.query<TrendingEventsResponse, TrendingEventsParams>({
+      query: (params) => ({
+        url: TRENDING_EVENTS_PATH,
+        method: 'GET',
+        params,
+      }),
+      providesTags: ['Events'],
+    }),
   }),
   overrideExisting: false,
 })
 
-export const { useCreateEventMutation, useGetRegisteredEventsQuery, useGetUserEventsQuery, useGetEventsListQuery, useGetEventDetailQuery } = eventsApi
+export const { useCreateEventMutation, useUpdateEventMutation, useGetRegisteredEventsQuery, useGetUserEventsQuery, useGetEventsListQuery, useGetEventDetailQuery, useGetTrendingEventsQuery } = eventsApi

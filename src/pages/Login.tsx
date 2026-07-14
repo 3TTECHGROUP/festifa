@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLoginMutation, useFirebaseAuthMutation } from '@/RTK/RegisterUserQuery/registerQuery'
@@ -9,6 +9,8 @@ import { auth, googleProvider } from '@/config/firebase'
 
 const Login = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from || '/dashboard'
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -34,7 +36,7 @@ const Login = () => {
         }
       }
       if (alreadyAuthed) {
-        navigate('/dashboard', { replace: true })
+        navigate(from, { replace: true })
       }
     } catch {
       // ignore storage errors
@@ -66,7 +68,7 @@ const Login = () => {
         localStorage.setItem('authToken', String(token))
       }
       localStorage.setItem('email_verified', String((res as any)?.data?.email_verified))
-      navigate('/dashboard')
+      navigate(from, { replace: true })
     } catch (err: any) {
       const msg = err?.data?.message || err?.error || 'Login failed'
       toast.error(msg)
@@ -88,7 +90,7 @@ const Login = () => {
       localStorage.setItem('isAuthenticated', 'true')
       localStorage.setItem('user', JSON.stringify(res.data))
       localStorage.setItem('email_verified', String(res.data.email_verified))
-      navigate('/dashboard')
+      navigate(from, { replace: true })
     } catch (err: any) {
       console.error('Google login error:', err)
       

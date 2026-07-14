@@ -19,6 +19,7 @@ const Terms = lazy(() => import('../pages/Terms'))
 const Events = lazy(() => import  ('../pages/Events'))
 const EventDetail = lazy(() => import('../pages/EventDetail'))
 const Templates = lazy(() => import('../pages/Templates'))
+const TemplateDetail = lazy(() => import('../pages/TemplateDetail'))
 const Signup = lazy(() => import('../pages/Signup'))
 const Login = lazy(() => import('../pages/Login'))
 const ForgotPassword = lazy(() => import('../pages/ForgotPassword'))
@@ -32,6 +33,7 @@ const Discover = lazy(() => import('../pages/Discover'))
 const Referrals = lazy(() => import('../pages/Referrals'))
 const UserDetails = lazy(() => import('../pages/UserDetails'))
 const CreateEvent = lazy(() => import('../pages/CreateEvent'))
+const EditEvent = lazy(() => import('../pages/EditEvent'))
 const DashboardNotFound = lazy(() => import('../pages/DashboardNotFound'))
 
 export const router = createBrowserRouter([
@@ -108,6 +110,14 @@ export const router = createBrowserRouter([
         element: (
           <LazyLoader>
             <Templates />
+          </LazyLoader>
+        ),
+      },
+      {
+        path: 'templates/:id',
+        element: (
+          <LazyLoader>
+            <TemplateDetail />
           </LazyLoader>
         ),
       },
@@ -202,6 +212,14 @@ export const router = createBrowserRouter([
             element: (
               <LazyLoader>
                 <CreateEvent />
+              </LazyLoader>
+            ),
+          },
+          {
+            path: 'edit-event/:id',
+            element: (
+              <LazyLoader>
+                <EditEvent />
               </LazyLoader>
             ),
           },

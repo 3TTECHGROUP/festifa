@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Search, FileText } from 'lucide-react'
 import eventPageBg from '@/assets/images/event-page-bg.png'
 import { getAllTemplatesInCategory, getCategories } from '@/service/templateLoader'
@@ -15,7 +16,10 @@ const EmptyState = () => (
   </div>
 )
 
+
+
 const Templates = () => {
+  const navigate = useNavigate()
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -45,6 +49,11 @@ const Templates = () => {
   }, [selectedCategory])
 
   const categories = useMemo(() => ['All', ...getCategories()], [])
+
+  const handleTemplateClick = (id?: string) => {
+    if (!id) return
+    navigate(`/templates/${id}`)
+  }
 
   const templates = useMemo(() => {
     if (!debouncedSearch) return allTemplates
@@ -152,7 +161,11 @@ const Templates = () => {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {templates.map((t) => (
-              <div key={t.id} className="cursor-pointer group">
+              <div
+                key={t.id}
+                className={`group ${t.dbId ? 'cursor-pointer' : 'cursor-default opacity-90'}`}
+                onClick={() => handleTemplateClick(t.dbId)}
+              >
                 <div className="bg-white rounded-lg shadow-md overflow-hidden group-hover:shadow-lg transition-shadow">
                   <div className="relative aspect-[2/3] md:aspect-[3/4]">
                     {t.media_url ? (

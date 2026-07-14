@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { getTemplateFile } from '@/service/templateLoader'
 import type { TemplateSummary } from '@/service/templateLoader'
 
-const TemplatePreview = ({ tpl }: { tpl: TemplateSummary }) => {
+const TemplatePreview = ({ tpl, propOverrides }: { tpl: TemplateSummary; propOverrides?: Record<string, string> }) => {
   const [Comp, setComp] = useState<React.ComponentType<any> | null>(null)
 
   useEffect(() => {
@@ -30,7 +30,7 @@ const TemplatePreview = ({ tpl }: { tpl: TemplateSummary }) => {
     <div className="w-full h-full overflow-hidden bg-white">
       {/* scale down so it fits the 2:3 card nicely */}
       <div className="scale-[0.6] origin-top-left" style={{ width: '166.6667%', height: '166.6667%' }}>
-        <Comp />
+        <Comp {...propOverrides} />
       </div>
     </div>
   )

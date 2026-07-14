@@ -1,27 +1,41 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useMemo, useState } from 'react'
-import { Calendar, MapPin, User, FileText, AlertCircle } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Calendar, MapPin, User, FileText, AlertCircle, Edit } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { mockEvents } from '../data/mockEvents'
 import { useGetRegisteredEventsQuery, useGetUserEventsQuery } from '@/RTK/EventsQuery/eventsQuery'
+import { getCategories, getAllTemplatesInCategory } from '@/service/templateLoader'
+import type { TemplateSummary } from '@/service/templateLoader'
+import TemplatePreview from '@/components/TemplatePreview'
 
 const Dashboard = () => {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'upcoming' | 'my-events' | 'past'>('upcoming')
   const [clickedCard, setClickedCard] = useState<string | number | null>(null)
-  const [page] = useState(1)
-  const [limit] = useState(10)
+  const [regPage, setRegPage] = useState(1)
+  const [myPage, setMyPage] = useState(1)
+  const [limit] = useState(100)
 
   const filter = activeTab === 'past' ? 'past' : activeTab === 'upcoming' ? 'upcoming' : undefined
   const { data, isFetching, isError, refetch: refetchRegistered } = useGetRegisteredEventsQuery(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    filter ? { page, limit, filter } : ({} as any),
+    filter ? { page: regPage, limit, filter } : ({} as any),
     { skip: !filter }
   )
 
   const { data: userData, isFetching: isFetchingUser, isError: isErrorUser, refetch: refetchUser } = useGetUserEventsQuery(
-    { page, limit },
+    { page: myPage, limit },
     { skip: activeTab !== 'my-events' }
   )
+
+  useEffect(() => {
+    setRegPage(1)
+  }, [filter])
+
+  useEffect(() => {
+    if (activeTab === 'my-events') setMyPage(1)
+  }, [activeTab])
 
   // Filter events for "My events" tab (events organized by YOU)
   const myEvents = mockEvents.filter(event => event.organizer.startsWith('YOU'))
@@ -63,6 +77,28 @@ const Dashboard = () => {
       }
     })
   }, [userData])
+
+  // Lookup: eventId -> local TemplateSummary (for thumbnail rendering)
+  const templateByEventId = useMemo(() => {
+    const map = new Map<string, TemplateSummary>()
+    const reg = data?.data || []
+    const mine = userData?.data || []
+    const all = [...reg, ...mine]
+    if (!all.length) return map
+    const cats = getCategories()
+    for (const ev of all) {
+      const dbId = (ev as any)?.template_id as string | undefined
+      if (!dbId) continue
+      for (const cat of cats) {
+        const found = getAllTemplatesInCategory(cat).find((t) => t.dbId === dbId)
+        if (found) {
+          map.set(ev.id, found)
+          break
+        }
+      }
+    }
+    return map
+  }, [data, userData])
 
   const displayEvents = activeTab === 'my-events' ? (myEventsApi.length ? myEventsApi : myEvents) : apiMappedEvents
   const loading = activeTab === 'my-events' ? isFetchingUser : isFetching
@@ -206,11 +242,21 @@ const Dashboard = () => {
                 <div className="flex gap-4">
                   {/* Event Image */}
                   <div className="flex-shrink-0">
-                    <img
-                      src={event.image}
-                      alt={event.title}
-                      className="w-16 h-16 rounded-lg object-cover"
-                    />
+                    {templateByEventId.get(String(event.id)) ? (
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                        <div className="scale-[0.55] origin-center">
+                          <div className="w-24 h-24">
+                            <TemplatePreview tpl={templateByEventId.get(String(event.id)) as TemplateSummary} />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={event.image}
+                        alt={event.title}
+                        className="w-16 h-16 rounded-lg object-cover"
+                      />
+                    )}
                   </div>
 
                   {/* Event Details */}
@@ -226,6 +272,17 @@ const Dashboard = () => {
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-1 truncate">{event.title}</h3>
                       </div>
+                      {activeTab === 'my-events' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/dashboard/edit-event/${event.id}`)
+                          }}
+                          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                          <Edit className="w-4 h-4 text-gray-600" />
+                        </button>
+                      )}
                     </div>
                     
                     <div className="space-y-1">
@@ -247,6 +304,39 @@ const Dashboard = () => {
               </div>
             </div>
           ))}
+          {(() => {
+            const pag = activeTab === 'my-events' ? userData?.pagination : data?.pagination
+            const hasApi = activeTab === 'my-events' ? Boolean(userData?.data?.length) : Boolean(data?.data?.length)
+            if (!hasApi || !pag) return null
+            const curr = pag.current_page ?? (activeTab === 'my-events' ? myPage : regPage)
+            const goPrev = () => {
+              if (activeTab === 'my-events') setMyPage((p) => Math.max(1, p - 1))
+              else setRegPage((p) => Math.max(1, p - 1))
+            }
+            const goNext = () => {
+              if (activeTab === 'my-events') setMyPage((p) => p + 1)
+              else setRegPage((p) => p + 1)
+            }
+            return (
+              <div className="flex items-center justify-center gap-3 pt-4">
+                <button
+                  onClick={goPrev}
+                  disabled={!pag.has_prev_page}
+                  className={`px-4 py-2 rounded-full border text-sm ${pag.has_prev_page ? 'bg-white hover:bg-gray-50' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-600">Page {curr}</span>
+                <button
+                  onClick={goNext}
+                  disabled={!pag.has_next_page}
+                  className={`px-4 py-2 rounded-full border text-sm ${pag.has_next_page ? 'bg-white hover:bg-gray-50' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                >
+                  Next
+                </button>
+              </div>
+            )
+          })()}
         </div>
       )}
     </div>
