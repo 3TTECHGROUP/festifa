@@ -188,3 +188,51 @@ export type EventDetailResponse = {
   message: string
   data: RegisteredEventItem
 }
+
+// Update Event endpoint and types
+export const UPDATE_EVENT_PATH = '/events'
+
+export type UpdateEventRequest = {
+  id: string
+  body: {
+    title?: string
+    description?: string
+    host?: string
+    category_id?: string
+    location?: string
+    start_date?: string
+    end_date?: string
+    is_virtual?: boolean
+    is_all_day_event?: boolean
+    is_multi_day_event?: boolean
+    is_free_event?: boolean
+    is_ticketing_enabled?: boolean
+    is_multimedia_enabled?: boolean
+    is_engagement_enabled?: boolean
+    is_form_enabled?: boolean
+    template_id?: string
+    template_prop_responses?: Array<{ prop_name: string; prop_response: string }>
+    tickets?: any[]
+    sessions?: any[]
+  }
+}
+
+export type UpdateEventResponse = {
+  success: boolean
+  message: string
+  data?: any
+}
+
+// Trending Events endpoint and types
+export const TRENDING_EVENTS_PATH = '/events/trending'
+
+export type TrendingEventsParams = {
+  latitude: number
+  longitude: number
+}
+
+export type TrendingEventsResponse = {
+  success: boolean
+  message: string
+  data: RegisteredEventItem[]
+}

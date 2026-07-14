@@ -8,6 +8,9 @@ import FilterModal from '@/components/FilterModal'
 import eventPageBg from '@/assets/images/event-page-bg.png'
 import { useGetEventsListQuery } from '@/RTK/EventsQuery/eventsQuery'
 import { useGetCategoriesQuery } from '@/RTK/CategoriesQuery/categoriesQuery'
+import { useGetTemplateByIdQuery } from '@/RTK/TemplatesQuery/templatesQuery'
+import { getCategories, getAllTemplatesInCategory } from '@/service/templateLoader'
+import type { TemplateSummary } from '@/service/templateLoader'
 
 const Events = () => {
   // Top-row category chips driven by API
@@ -58,6 +61,76 @@ const Events = () => {
       }
     })
   }, [data])
+
+  // Build a lookup of eventId -> local TemplateSummary when event has template_id
+  const templateByEventId = useMemo(() => {
+    const map = new Map<string, TemplateSummary>()
+    const items = data?.data || []
+    if (!items.length) return map
+    const cats = getCategories()
+    for (const ev of items) {
+      const dbId = (ev as any).template_id
+      if (!dbId) continue
+      for (const cat of cats) {
+        const found = getAllTemplatesInCategory(cat).find((t) => t.dbId === dbId)
+        if (found) {
+          map.set(ev.id, found)
+          break
+        }
+      }
+    }
+    return map
+  }, [data])
+
+  // Get unique template_ids from events
+  const uniqueTemplateIds = useMemo(() => {
+    const ids = new Set<string>()
+    data?.data?.forEach((ev) => {
+      const tid = (ev as any).template_id
+      if (tid) ids.add(tid)
+    })
+    return Array.from(ids)
+  }, [data])
+
+  // Fetch template details for up to 3 unique template_ids (includes props)
+  // Using fixed number of hooks to avoid React hooks rule violation
+  const templateQuery1 = useGetTemplateByIdQuery(uniqueTemplateIds[0] || '', { skip: !uniqueTemplateIds[0] })
+  const templateQuery2 = useGetTemplateByIdQuery(uniqueTemplateIds[1] || '', { skip: !uniqueTemplateIds[1] })
+  const templateQuery3 = useGetTemplateByIdQuery(uniqueTemplateIds[2] || '', { skip: !uniqueTemplateIds[2] })
+
+  // Build combined prop_id -> prop_name mapping from API
+  const propIdToName = useMemo(() => {
+    const map = new Map<string, string>()
+    const queries = [templateQuery1, templateQuery2, templateQuery3]
+    queries.forEach((query) => {
+      const props = query.data?.data?.props || []
+      props.forEach((prop) => {
+        // Map 'image' to 'image_url' for template compatibility
+        const propName = prop.prop_name === 'image' ? 'image_url' : prop.prop_name
+        map.set(prop.id, propName)
+      })
+    })
+    return map
+  }, [templateQuery1, templateQuery2, templateQuery3])
+
+  // Map template_prop_responses to prop names using API data
+  const propOverridesByEventId = useMemo(() => {
+    const map = new Map<string, Record<string, string>>()
+    const items = data?.data || []
+
+    for (const ev of items) {
+      const responses = (ev as any).template_prop_responses || []
+      const overrides: Record<string, string> = {}
+      responses.forEach((r: any) => {
+        const propName = propIdToName.get(r.template_prop_id)
+        if (propName) {
+          overrides[propName] = r.prop_response
+        }
+      })
+      map.set(ev.id, overrides)
+    }
+    return map
+  }, [data, propIdToName])
 
   const SkeletonGrid = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -248,7 +321,12 @@ const Events = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {apiEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
+              <EventCard
+                key={event.id}
+                event={event}
+                templateTpl={templateByEventId.get(String(event.id))}
+                propOverrides={propOverridesByEventId.get(String(event.id))}
+              />
             ))}
           </div>
         ))}

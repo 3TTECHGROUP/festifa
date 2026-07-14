@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   MapPin,
   // Users,
@@ -33,7 +33,7 @@ import {
 import { useGetTemplateByIdQuery } from "@/RTK/TemplatesQuery/templatesQuery";
 import { useGetCategoriesQuery } from "@/RTK/CategoriesQuery/categoriesQuery";
 import { useGetCurrenciesQuery } from "@/RTK/CurrenciesQuery/currenciesQuery";
-import { useCreateEventMutation } from "@/RTK/EventsQuery/eventsQuery";
+import { useGetEventDetailQuery, useUpdateEventMutation } from "@/RTK/EventsQuery/eventsQuery";
 import { uploadImageToS3, deleteS3Object } from "@/utils/s3Upload";
 import {
   getAllTemplatesInCategory,
@@ -63,9 +63,9 @@ type EventSession = {
   end_time: string;
 };
 
-const CreateEvent = () => {
+const EditEvent = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { id } = useParams<{ id: string }>();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [formData, setFormData] = useState({
     title: "",
@@ -147,7 +147,10 @@ const CreateEvent = () => {
   const [_userCountry, setUserCountry] = useState<string | null>(null);
   const [ipLocationData, setIpLocationData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createEventMutation] = useCreateEventMutation();
+  const [updateEventMutation] = useUpdateEventMutation();
+  
+  // Fetch event details
+  const { data: eventData, isLoading: isLoadingEvent, isError: isEventError } = useGetEventDetailQuery({ id: id || '' }, { skip: !id });
 
   // console.log(userCountry, 'country')
 
@@ -344,41 +347,65 @@ const CreateEvent = () => {
     fetchUserCountry();
   }, []);
 
-  // Preselect template when navigated here from the template detail page
+  // Populate form with existing event data
   useEffect(() => {
-    const state = location.state as
-      | {
-          templateId?: string;
-          templateCategory?: string;
-          templateFieldValues?: Record<string, string>;
-        }
-      | null;
-    if (!state?.templateId) return;
-    setSelectedTemplateId(state.templateId);
-    // Prefill any field values entered on the template detail page
-    const provided = state.templateFieldValues
-      ? Object.fromEntries(
-          Object.entries(state.templateFieldValues).filter(
-            ([, v]) => typeof v === "string" && v.trim() !== "",
-          ),
-        )
-      : {};
-    setTemplateFields(provided);
-    // Force re-render to show preloaded images
-    setPreviewKey((prev) => prev + 1);
-    // Try to attach the local template summary for live preview
-    if (state.templateCategory) {
-      const cat = getCategories().find(
-        (c) => c.toLowerCase() === state.templateCategory!.toLowerCase(),
-      );
-      if (cat) {
-        const found = getAllTemplatesInCategory(cat).find(
-          (t) => t.dbId === state.templateId,
-        );
-        if (found) setSelectedLocalTemplate(found);
+    if (eventData?.data) {
+      const event = eventData.data;
+      setFormData({
+        title: event.title || "",
+        description: event.description || "",
+        host: event.host || "",
+        location: event.location || "",
+        city: "",
+        country: "",
+        timezone: "",
+        latitude: 0,
+        longitude: 0,
+        capacity: "",
+        category: event.category_id || undefined,
+        startDate: event.start_date ? event.start_date.split('T')[0] : "",
+        startTime: "",
+        endDate: event.end_date ? event.end_date.split('T')[0] : "",
+        isAllDay: event.is_all_day_event || false,
+        isFreeEvent: event.is_free_event || false,
+        isVirtual: event.is_virtual || false,
+        // Backend payload supports multi-day, but RegisteredEventItem type doesn't expose it; infer from sessions length
+        isMultiDayEvent: Array.isArray(event.sessions) && event.sessions.length > 0,
+        createForm: event.is_form_enabled || false,
+        allowComments: event.is_engagement_enabled || false,
+        multimediaSupport: event.is_multimedia_enabled || false,
+        hasTickets: event.is_ticketing_enabled || false,
+      });
+
+      // RegisteredEventItem doesn't expose template_id; keep current selectedTemplateId unchanged
+      // setSelectedTemplateId(event.template_id || null);
+
+      // Find and set local template for preview
+      // We cannot map a local template without template_id on the item; leave preview as image or existing selection
+
+      // Set tickets
+      if (event.tickets) {
+        setTickets(event.tickets);
+      }
+
+      // Set sessions
+      if (event.sessions && event.sessions.length > 0) {
+        setSessions(event.sessions.map((session: any) => ({
+          id: session.id,
+          name: session.name,
+          date: session.date ? session.date.split('T')[0] : "",
+          timezone: session.timezone,
+          start_time: session.start_time,
+          end_time: session.end_time,
+        })));
+      }
+
+      // Set uploaded image if exists
+      if (event.media_url) {
+        setUploadedImage(event.media_url);
       }
     }
-  }, [location.state]);
+  }, [eventData]);
 
   // Fetch selected template details
   const { data: templateData, refetch: refetchTemplate } =
@@ -388,6 +415,14 @@ const CreateEvent = () => {
     });
   const { data: categoriesData } = useGetCategoriesQuery();
   const { data: currenciesData } = useGetCurrenciesQuery();
+
+  // Fetch template for prop mapping
+  const templateQuery = useGetTemplateByIdQuery(selectedTemplateId || '', { skip: !selectedTemplateId });
+
+  // Populate template fields from template_prop_responses
+  useEffect(() => {
+    // RegisteredEventItem type here does not expose template props; skip prefill safely
+  }, [eventData, templateQuery.data]);
 
   // Set default currency from IP location once currenciesData is available
   useEffect(() => {
@@ -572,18 +607,16 @@ const CreateEvent = () => {
         ? uploadedImage.trim()
         : undefined;
 
-    return {
+    const payload: any = {
       title: formData.title,
       description: formData.description,
       host: formData.host,
       category_id: formData.category || undefined,
       location: formData.location,
-      city: formData.city,
-      country: formData.country,
-      latitude: coordinates.latitude,
-      longitude: coordinates.longitude,
-      media_url: normalizedMediaUrl || 'https://www.google.com',
-      template_id: selectedTemplateId || undefined,
+      city: formData.city || undefined,
+      country: formData.country || undefined,
+      latitude: coordinates.latitude || undefined,
+      longitude: coordinates.longitude || undefined,
       start_date: buildIsoDateTime(formData.startDate, formData.startTime),
       end_date: buildIsoDateTime(formData.endDate || formData.startDate, formData.startTime),
       is_all_day_event: formData.isAllDay,
@@ -594,70 +627,74 @@ const CreateEvent = () => {
       is_multi_day_event: formData.isMultiDayEvent,
       is_form_enabled: formData.createForm,
       is_virtual: formData.isVirtual,
-      sessions: formData.isMultiDayEvent
-        ? sessions.map((s) => ({
-            name: s.name,
-            date: buildIsoDateTime(s.date),
-            timezone: s.timezone,
-            start_time: s.start_time,
-            end_time: s.end_time,
-          }))
-        : [],
-      tickets: formData.hasTickets
-        ? tickets.map((t) => ({
-            currency_id: t.currency_id || currency,
-            name: t.name,
-            description: t.description,
-            price: t.is_free ? 0 : Number(t.price || 0),
-            quantity: Number(t.quantity || 0),
-            is_free: t.is_free,
-            is_predefined: t.is_predefined,
-          }))
-        : [],
-      template_props_responses: selectedTemplateId && templateData?.data?.props
-        ? templateData.data.props
-            .filter((prop) => {
-              const value = templateFields[prop.prop_name];
-              return typeof value === "string" && value.trim() !== "";
-            })
-            .map((prop) => ({
-              template_prop_id: prop.id,
-              prop_response: templateFields[prop.prop_name],
-            }))
-        : [],
-      form: formData.createForm
-        ? {
-            form_fields: attendeeBlocks.map((b) => ({
-              field_label: b.question || b.label || "",
-              field_type:
-                b.type === "multi"
-                  ? "checkbox"
-                  : b.type === "input"
-                    ? "text"
-                    : b.type,
-              is_required: Boolean(b.required),
-              options: b.options || [],
-            })),
-          }
-        : undefined,
     };
+
+    // Only include media_url if we have a new one
+    if (normalizedMediaUrl) {
+      payload.media_url = normalizedMediaUrl;
+    }
+
+    // Only include sessions if multi-day event
+    if (formData.isMultiDayEvent) {
+      payload.sessions = sessions.map((s) => ({
+        name: s.name,
+        date: buildIsoDateTime(s.date),
+        timezone: s.timezone,
+        start_time: s.start_time,
+        end_time: s.end_time,
+      }));
+    }
+
+    // Only include tickets if ticketing is enabled
+    if (formData.hasTickets) {
+      payload.tickets = tickets.map((t) => ({
+        currency_id: t.currency_id || currency,
+        name: t.name,
+        description: t.description,
+        price: t.is_free ? 0 : Number(t.price || 0),
+        quantity: Number(t.quantity || 0),
+        is_free: t.is_free,
+        is_predefined: t.is_predefined,
+      }));
+    }
+
+    // Only include form if form is enabled
+    if (formData.createForm) {
+      payload.form = {
+        form_fields: attendeeBlocks.map((b) => ({
+          field_label: b.question || b.label || "",
+          field_type:
+            b.type === "multi"
+              ? "checkbox"
+              : b.type === "input"
+                ? "text"
+                : b.type,
+          is_required: Boolean(b.required),
+          options: b.options || [],
+        })),
+      };
+    }
+
+    return payload;
   }, [formData, uploadedImage, coordinates, selectedTemplateId, sessions, tickets, currency, templateData, templateFields, buildIsoDateTime, attendeeBlocks]);
 
-  const handleCreateEvent = useCallback(async () => {
+  const handleUpdateEvent = useCallback(async () => {
+    if (!id) return;
+    
     const payload = buildEventPayload();
     setIsSubmitting(true);
     try {
-      const result = await createEventMutation(payload).unwrap();
+      const result = await updateEventMutation({ id, body: payload }).unwrap();
 
-      toast.success(result?.message || "Event created successfully");
+      toast.success(result?.message || "Event updated successfully");
       navigate("/dashboard");
     } catch (error: any) {
       const validationMessage = error?.data?.error?.details?.[0]?.message;
-      toast.error(validationMessage || error?.data?.message || error?.data?.error || error?.message || "Failed to create event");
+      toast.error(validationMessage || error?.data?.message || error?.data?.error || error?.message || "Failed to update event");
     } finally {
       setIsSubmitting(false);
     }
-  }, [createEventMutation, navigate, buildEventPayload]);
+  }, [updateEventMutation, navigate, buildEventPayload, id]);
 
   useEffect(() => {
     const stored = localStorage.getItem('createEventImage');
@@ -766,7 +803,7 @@ const CreateEvent = () => {
         setStep(4);
         return;
       }
-      void handleCreateEvent();
+      void handleUpdateEvent();
       return;
     }
     if (step === 2) {
@@ -783,7 +820,7 @@ const CreateEvent = () => {
         setStep(4);
         return;
       }
-      void handleCreateEvent();
+      void handleUpdateEvent();
       return;
     }
     if (step === 3) {
@@ -791,14 +828,14 @@ const CreateEvent = () => {
         setStep(4);
         return;
       }
-      void handleCreateEvent();
+      void handleUpdateEvent();
       return;
     }
     if (step === 4) {
-      void handleCreateEvent();
+      void handleUpdateEvent();
       return;
     }
-  }, [step, formData, areSessionsValid, handleCreateEvent]);
+  }, [step, formData, areSessionsValid, handleUpdateEvent]);
 
   const handleBack = useCallback(() => {
     if (step === 2) {
@@ -832,15 +869,15 @@ const CreateEvent = () => {
     if (step === 1) {
       return formData.isMultiDayEvent || formData.createForm || formData.hasTickets
         ? "Continue"
-        : "Create Event";
+        : "Save Changes";
     }
     if (step === 2) {
-      return formData.createForm || formData.hasTickets ? "Continue" : "Create Event";
+      return formData.createForm || formData.hasTickets ? "Continue" : "Save Changes";
     }
     if (step === 3) {
-      return formData.hasTickets ? "Continue" : "Create Event";
+      return formData.hasTickets ? "Continue" : "Save Changes";
     }
-    return "Create Event";
+    return "Save Changes";
   };
 
   // Attendee form builder helpers
@@ -1321,6 +1358,22 @@ const CreateEvent = () => {
     );
   };
 
+  if (isLoadingEvent) {
+    return (
+      <div className="min-h-screen bg-[#eeeeee] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
+
+  if (isEventError || !eventData?.data) {
+    return (
+      <div className="min-h-screen bg-[#eeeeee] flex items-center justify-center">
+        <div className="text-red-500">Failed to load event details</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#eeeeee]">
       {/* Mobile Header */}
@@ -1339,7 +1392,7 @@ const CreateEvent = () => {
           </div> */}
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-1 md:text-3xl md:mb-2">
-          Create Event
+          Edit Event
         </h1>
         <p className="text-gray-500 text-sm md:text-base">
           Gathering people for your event is more stylish with festifa
@@ -1672,7 +1725,7 @@ const CreateEvent = () => {
                     <SelectContent>
                       {(categoriesData?.data ?? [])
                         .slice()
-                        .sort((a, b) => Number(a.priority) - Number(b.priority))
+                        .sort((a, b) => Number(a.priority ?? 0) - Number(b.priority ?? 0))
                         .map((category) => (
                           <SelectItem
                             key={category.id}
@@ -2775,4 +2828,4 @@ const CreateEvent = () => {
   );
 };
 
-export default CreateEvent;
+export default EditEvent;

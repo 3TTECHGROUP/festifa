@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { api } from '@/service/api'
-import { 
-  GET_TEMPLATES_PATH, 
+import {
+  GET_TEMPLATES_PATH,
   GET_TEMPLATE_BY_ID_PATH,
-  type GetTemplatesParams, 
+  GET_TEMPLATE_PROPS_PATH,
+  type GetTemplatesParams,
   type GetTemplatesResponse,
-  type GetTemplateByIdResponse
+  type GetTemplateByIdResponse,
+  type GetTemplatePropsResponse
 } from './endpoint'
 
 export const templatesApi = api.injectEndpoints({
@@ -21,8 +23,11 @@ export const templatesApi = api.injectEndpoints({
     getTemplateById: builder.query<GetTemplateByIdResponse, string>({
       query: (id) => ({ url: GET_TEMPLATE_BY_ID_PATH(id) }),
     }),
+    getTemplateProps: builder.query<GetTemplatePropsResponse, string>({
+      query: (id) => ({ url: GET_TEMPLATE_PROPS_PATH(id) }),
+    }),
   }),
   overrideExisting: false,
 })
 
-export const { useGetTemplatesQuery, useGetTemplateByIdQuery } = templatesApi
+export const { useGetTemplatesQuery, useGetTemplateByIdQuery, useGetTemplatePropsQuery } = templatesApi
