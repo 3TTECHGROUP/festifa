@@ -369,19 +369,27 @@ const EditEvent = () => {
         isAllDay: event.is_all_day_event || false,
         isFreeEvent: event.is_free_event || false,
         isVirtual: event.is_virtual || false,
-        // Backend payload supports multi-day, but RegisteredEventItem type doesn't expose it; infer from sessions length
-        isMultiDayEvent: Array.isArray(event.sessions) && event.sessions.length > 0,
+        isMultiDayEvent: event.is_multi_day_event || (Array.isArray(event.sessions) && event.sessions.length > 0),
         createForm: event.is_form_enabled || false,
         allowComments: event.is_engagement_enabled || false,
         multimediaSupport: event.is_multimedia_enabled || false,
         hasTickets: event.is_ticketing_enabled || false,
       });
 
-      // RegisteredEventItem doesn't expose template_id; keep current selectedTemplateId unchanged
-      // setSelectedTemplateId(event.template_id || null);
+      setSelectedTemplateId(event.template_id || null);
 
       // Find and set local template for preview
-      // We cannot map a local template without template_id on the item; leave preview as image or existing selection
+      if (event.template_id) {
+        const cats = getCategories();
+        for (const cat of cats) {
+          const templates = getAllTemplatesInCategory(cat as any);
+          const found = templates.find((t) => t.dbId === event.template_id);
+          if (found) {
+            setSelectedLocalTemplate(found);
+            break;
+          }
+        }
+      }
 
       // Set tickets
       if (event.tickets) {
@@ -390,13 +398,13 @@ const EditEvent = () => {
 
       // Set sessions
       if (event.sessions && event.sessions.length > 0) {
-        setSessions(event.sessions.map((session: any) => ({
+        setSessions(event.sessions.map((session) => ({
           id: session.id,
           name: session.name,
           date: session.date ? session.date.split('T')[0] : "",
-          timezone: session.timezone,
-          start_time: session.start_time,
-          end_time: session.end_time,
+          timezone: session.timezone || "",
+          start_time: session.start_time || "",
+          end_time: session.end_time || "",
         })));
       }
 
@@ -421,7 +429,25 @@ const EditEvent = () => {
 
   // Populate template fields from template_prop_responses
   useEffect(() => {
-    // RegisteredEventItem type here does not expose template props; skip prefill safely
+    if (eventData?.data?.template_prop_responses && templateQuery.data?.data?.props) {
+      const event = eventData.data;
+      const propResponses = event.template_prop_responses || [];
+      const fields: Record<string, string> = {};
+
+      const propIdToName = new Map<string, string>();
+      templateQuery.data.data.props.forEach((prop: any) => {
+        propIdToName.set(prop.id, prop.prop_name);
+      });
+
+      propResponses.forEach((response) => {
+        const propName = propIdToName.get(response.template_prop_id);
+        if (propName) {
+          fields[propName] = response.prop_response;
+        }
+      });
+
+      setTemplateFields(fields);
+    }
   }, [eventData, templateQuery.data]);
 
   // Set default currency from IP location once currenciesData is available

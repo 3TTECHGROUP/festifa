@@ -69,7 +69,7 @@ const Events = () => {
     if (!items.length) return map
     const cats = getCategories()
     for (const ev of items) {
-      const dbId = (ev as any).template_id
+      const dbId = ev.template_id
       if (!dbId) continue
       for (const cat of cats) {
         const found = getAllTemplatesInCategory(cat).find((t) => t.dbId === dbId)
@@ -86,7 +86,7 @@ const Events = () => {
   const uniqueTemplateIds = useMemo(() => {
     const ids = new Set<string>()
     data?.data?.forEach((ev) => {
-      const tid = (ev as any).template_id
+      const tid = ev.template_id
       if (tid) ids.add(tid)
     })
     return Array.from(ids)
@@ -119,9 +119,9 @@ const Events = () => {
     const items = data?.data || []
 
     for (const ev of items) {
-      const responses = (ev as any).template_prop_responses || []
+      const responses = ev.template_prop_responses || []
       const overrides: Record<string, string> = {}
-      responses.forEach((r: any) => {
+      responses.forEach((r) => {
         const propName = propIdToName.get(r.template_prop_id)
         if (propName) {
           overrides[propName] = r.prop_response

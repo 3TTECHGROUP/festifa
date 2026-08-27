@@ -87,6 +87,13 @@ export type RegisteredEventsPagination = {
   has_prev_page: boolean
 }
 
+export type TemplatePropResponse = {
+  id?: string
+  template_prop_id: string
+  event_id?: string
+  prop_response: string
+}
+
 export type RegisteredEventItem = {
   id: string
   user_id?: string
@@ -101,11 +108,13 @@ export type RegisteredEventItem = {
   is_virtual?: boolean
   has_liked?: boolean
   is_all_day_event?: boolean
+  is_multi_day_event?: boolean
   is_ticketing_enabled?: boolean
   is_free_event?: boolean
   is_multimedia_enabled?: boolean
   is_engagement_enabled?: boolean
   is_form_enabled?: boolean
+  template_id?: string
   comment_count?: number
   view_count?: number
   like_count?: number
@@ -135,6 +144,8 @@ export type RegisteredEventItem = {
   }>
   registrations?: any[]
   form?: any
+  template_prop_responses?: TemplatePropResponse[]
+  similar_events?: RegisteredEventItem[]
 }
 
 export type RegisteredEventsResponse = {
@@ -221,6 +232,85 @@ export type UpdateEventResponse = {
   success: boolean
   message: string
   data?: any
+}
+
+// Event Comments endpoint and types
+export type EventCommentsParams = {
+  event_id: string
+  page?: number
+  limit?: number
+}
+
+export type EventCommentItem = {
+  id: string
+  event_id?: string
+  user_id?: string
+  content: string
+  like_count?: number
+  view_count?: number
+  has_liked?: boolean
+  created_at?: string
+  user?: { name?: string; profile_image?: string }
+}
+
+export type EventCommentsPagination = {
+  current_page: number | string
+  limit: number | string
+  has_next_page: boolean
+  has_prev_page: boolean
+}
+
+export type EventCommentsResponse = {
+  success: boolean
+  data: EventCommentItem[]
+  pagination: EventCommentsPagination
+}
+
+export type CreateCommentRequest = {
+  event_id: string
+  content: string
+}
+
+export type CreateCommentResponse = {
+  success: boolean
+  message?: string
+  data?: EventCommentItem
+}
+
+export type UpdateCommentRequest = {
+  comment_id: string
+  content: string
+}
+
+export type UpdateCommentResponse = {
+  success: boolean
+  message?: string
+  data?: EventCommentItem
+}
+
+// Engagement (like/unlike) endpoints and types
+export type EngagementActionType = 'like' | 'unlike'
+
+export type EventEngagementRequest = {
+  event_id: string
+  action_type: EngagementActionType
+}
+
+export type CommentEngagementRequest = {
+  comment_id: string
+  action_type: EngagementActionType
+}
+
+export type EngagementResponse = {
+  success: boolean
+  message?: string
+  data?: {
+    id: string
+    event_id?: string
+    comment_id?: string
+    user_id: string
+    type: string
+  }
 }
 
 // Trending Events endpoint and types

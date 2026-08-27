@@ -16,6 +16,15 @@ import {
   EVENT_DETAIL_BASE,
   type EventDetailParams,
   type EventDetailResponse,
+  type EventCommentsParams,
+  type EventCommentsResponse,
+  type CreateCommentRequest,
+  type CreateCommentResponse,
+  type UpdateCommentRequest,
+  type UpdateCommentResponse,
+  type EventEngagementRequest,
+  type CommentEngagementRequest,
+  type EngagementResponse,
   UPDATE_EVENT_PATH,
   type UpdateEventRequest,
   type UpdateEventResponse,
@@ -73,6 +82,44 @@ export const eventsApi = api.injectEndpoints({
       }),
       providesTags: ['Events'],
     }),
+    getEventComments: builder.query<EventCommentsResponse, EventCommentsParams>({
+      query: ({ event_id, page, limit }) => ({
+        url: `/${event_id}/comments`,
+        method: 'GET',
+        params: { event_id, page, limit },
+      }),
+      providesTags: ['Comments'],
+    }),
+    createComment: builder.mutation<CreateCommentResponse, CreateCommentRequest>({
+      query: ({ event_id, content }) => ({
+        url: `/comments/${event_id}`,
+        method: 'POST',
+        body: { content },
+      }),
+      invalidatesTags: ['Comments'],
+    }),
+    updateComment: builder.mutation<UpdateCommentResponse, UpdateCommentRequest>({
+      query: ({ comment_id, content }) => ({
+        url: `/comments/${comment_id}`,
+        method: 'PATCH',
+        body: { content },
+      }),
+      invalidatesTags: ['Comments'],
+    }),
+    engageWithEvent: builder.mutation<EngagementResponse, EventEngagementRequest>({
+      query: ({ event_id, action_type }) => ({
+        url: `/events/${event_id}/engagements`,
+        method: 'POST',
+        params: { action_type },
+      }),
+    }),
+    engageWithComment: builder.mutation<EngagementResponse, CommentEngagementRequest>({
+      query: ({ comment_id, action_type }) => ({
+        url: `/comments/${comment_id}/engagements`,
+        method: 'POST',
+        params: { action_type },
+      }),
+    }),
     getTrendingEvents: builder.query<TrendingEventsResponse, TrendingEventsParams>({
       query: (params) => ({
         url: TRENDING_EVENTS_PATH,
@@ -85,4 +132,4 @@ export const eventsApi = api.injectEndpoints({
   overrideExisting: false,
 })
 
-export const { useCreateEventMutation, useUpdateEventMutation, useGetRegisteredEventsQuery, useGetUserEventsQuery, useGetEventsListQuery, useGetEventDetailQuery, useGetTrendingEventsQuery } = eventsApi
+export const { useCreateEventMutation, useUpdateEventMutation, useGetRegisteredEventsQuery, useGetUserEventsQuery, useGetEventsListQuery, useGetEventDetailQuery, useGetEventCommentsQuery, useCreateCommentMutation, useUpdateCommentMutation, useEngageWithEventMutation, useEngageWithCommentMutation, useGetTrendingEventsQuery } = eventsApi
