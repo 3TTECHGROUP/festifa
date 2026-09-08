@@ -6,6 +6,7 @@ import AuthGuard from '../components/AuthGuard'
 import AuthAware404 from '../components/AuthAware404'
 import LazyLoader from '../components/LazyLoader'
 import ProtectedRoute from '../components/ProtectedRoute'
+import RouteErrorBoundary from '../components/RouteErrorBoundary'
 
 // Lazy load all page components
 const Home = lazy(() => import('../pages/Home'))
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <Layout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       {
         index: true,
@@ -195,6 +197,7 @@ export const router = createBrowserRouter([
   {
     path: '/dashboard',
     element: <AuthGuard />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       {
         path: '',
