@@ -34,6 +34,7 @@ const Referrals = lazy(() => import('../pages/Referrals'))
 const UserDetails = lazy(() => import('../pages/UserDetails'))
 const CreateEvent = lazy(() => import('../pages/CreateEvent'))
 const EditEvent = lazy(() => import('../pages/EditEvent'))
+const EventGalleryModeration = lazy(() => import('../pages/EventGalleryModeration'))
 const DashboardNotFound = lazy(() => import('../pages/DashboardNotFound'))
 
 export const router = createBrowserRouter([
@@ -220,6 +221,14 @@ export const router = createBrowserRouter([
             element: (
               <LazyLoader>
                 <EditEvent />
+              </LazyLoader>
+            ),
+          },
+          {
+            path: 'event-gallery/:id',
+            element: (
+              <LazyLoader>
+                <EventGalleryModeration />
               </LazyLoader>
             ),
           },

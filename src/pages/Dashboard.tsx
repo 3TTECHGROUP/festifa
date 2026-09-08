@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useMemo, useState } from 'react'
-import { Calendar, MapPin, User, FileText, AlertCircle, Edit } from 'lucide-react'
+import { Calendar, MapPin, User, FileText, AlertCircle, Edit, Images } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { mockEvents } from '../data/mockEvents'
 import { useGetRegisteredEventsQuery, useGetUserEventsQuery } from '@/RTK/EventsQuery/eventsQuery'
@@ -273,15 +273,28 @@ const Dashboard = () => {
                         <h3 className="text-lg font-semibold text-gray-900 mb-1 truncate">{event.title}</h3>
                       </div>
                       {activeTab === 'my-events' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            navigate(`/dashboard/edit-event/${event.id}`)
-                          }}
-                          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                        >
-                          <Edit className="w-4 h-4 text-gray-600" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigate(`/dashboard/event-gallery/${event.id}`)
+                            }}
+                            title="View gallery items"
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                          >
+                            <Images className="w-4 h-4 text-gray-600" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigate(`/dashboard/edit-event/${event.id}`)
+                            }}
+                            title="Edit event"
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                          >
+                            <Edit className="w-4 h-4 text-gray-600" />
+                          </button>
+                        </div>
                       )}
                     </div>
                     

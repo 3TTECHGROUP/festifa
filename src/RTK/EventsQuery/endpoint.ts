@@ -288,6 +288,15 @@ export type UpdateCommentResponse = {
   data?: EventCommentItem
 }
 
+export type DeleteCommentRequest = {
+  comment_id: string
+}
+
+export type DeleteCommentResponse = {
+  success: boolean
+  message?: string
+}
+
 // Engagement (like/unlike) endpoints and types
 export type EngagementActionType = 'like' | 'unlike'
 
@@ -311,6 +320,78 @@ export type EngagementResponse = {
     user_id: string
     type: string
   }
+}
+
+// Event Gallery endpoint and types
+export const EVENT_GALLERY_BASE = '/events'
+
+export type EventGalleryParams = {
+  event_id: string
+}
+
+// The gallery API currently returns an empty `data` array for every event, so the
+// item fields below are typed permissively: `media_url` follows the naming used by
+// the rest of the events API, and the `url`/`media_type` aliases keep the UI working
+// if the backend serves a different key once real items exist.
+export type EventGalleryItem = {
+  id: string
+  event_id?: string
+  user_id?: string
+  media_url?: string
+  url?: string
+  media_type?: string
+  type?: string
+  caption?: string
+  label?: string
+  status?: string
+  created_at?: string
+  user?: { name?: string; profile_image?: string }
+}
+
+export type EventGalleryResponse = {
+  success: boolean
+  message?: string
+  data: EventGalleryItem[]
+}
+
+export type CreateGalleryFile = {
+  label?: string
+  media_type: string
+  media_url: string
+}
+
+export type CreateGalleryItemRequest = {
+  event_id: string
+  user_id: string
+  files: CreateGalleryFile[]
+}
+
+export type CreateGalleryItemResponse = {
+  success: boolean
+  message?: string
+  data?: EventGalleryItem[]
+}
+
+// Host-facing gallery moderation: lists every submitted item (any status) for
+// review, and lets the host approve/reject each one individually.
+export type EventGalleryModerationParams = {
+  event_id: string
+}
+
+export type EventGalleryModerationResponse = {
+  success: boolean
+  message?: string
+  data: EventGalleryItem[]
+}
+
+export type GalleryItemModerationRequest = {
+  event_gallery_item_id: string
+}
+
+export type GalleryItemModerationResponse = {
+  success: boolean
+  message?: string
+  data?: EventGalleryItem
 }
 
 // Trending Events endpoint and types

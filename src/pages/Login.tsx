@@ -89,6 +89,11 @@ const Login = () => {
       toast.success(res?.message || 'Logged in successfully with Google')
       localStorage.setItem('isAuthenticated', 'true')
       localStorage.setItem('user', JSON.stringify(res.data))
+      // Persist access token if backend returns it (same as the email/password path above)
+      const googleToken = (res as any)?.data?.token || (res as any)?.token
+      if (googleToken) {
+        localStorage.setItem('authToken', String(googleToken))
+      }
       localStorage.setItem('email_verified', String(res.data.email_verified))
       navigate(from, { replace: true })
     } catch (err: any) {

@@ -22,6 +22,8 @@ import {
   type CreateCommentResponse,
   type UpdateCommentRequest,
   type UpdateCommentResponse,
+  type DeleteCommentRequest,
+  type DeleteCommentResponse,
   type EventEngagementRequest,
   type CommentEngagementRequest,
   type EngagementResponse,
@@ -31,6 +33,15 @@ import {
   TRENDING_EVENTS_PATH,
   type TrendingEventsParams,
   type TrendingEventsResponse,
+  EVENT_GALLERY_BASE,
+  type EventGalleryParams,
+  type EventGalleryResponse,
+  type CreateGalleryItemRequest,
+  type CreateGalleryItemResponse,
+  type EventGalleryModerationParams,
+  type EventGalleryModerationResponse,
+  type GalleryItemModerationRequest,
+  type GalleryItemModerationResponse,
 } from './endpoint'
 
 export const eventsApi = api.injectEndpoints({
@@ -82,6 +93,42 @@ export const eventsApi = api.injectEndpoints({
       }),
       providesTags: ['Events'],
     }),
+    getEventGallery: builder.query<EventGalleryResponse, EventGalleryParams>({
+      query: ({ event_id }) => ({
+        url: `${EVENT_GALLERY_BASE}/${event_id}/gallery`,
+        method: 'GET',
+      }),
+      providesTags: ['Gallery'],
+    }),
+    createGalleryItem: builder.mutation<CreateGalleryItemResponse, CreateGalleryItemRequest>({
+      query: ({ event_id, ...body }) => ({
+        url: `${EVENT_GALLERY_BASE}/${event_id}/gallery`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Gallery'],
+    }),
+    getEventGalleryModeration: builder.query<EventGalleryModerationResponse, EventGalleryModerationParams>({
+      query: ({ event_id }) => ({
+        url: `${EVENT_GALLERY_BASE}/gallery/${event_id}`,
+        method: 'GET',
+      }),
+      providesTags: ['Gallery'],
+    }),
+    approveGalleryItem: builder.mutation<GalleryItemModerationResponse, GalleryItemModerationRequest>({
+      query: ({ event_gallery_item_id }) => ({
+        url: `${EVENT_GALLERY_BASE}/gallery/${event_gallery_item_id}/approve`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Gallery'],
+    }),
+    rejectGalleryItem: builder.mutation<GalleryItemModerationResponse, GalleryItemModerationRequest>({
+      query: ({ event_gallery_item_id }) => ({
+        url: `${EVENT_GALLERY_BASE}/gallery/${event_gallery_item_id}/reject`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Gallery'],
+    }),
     getEventComments: builder.query<EventCommentsResponse, EventCommentsParams>({
       query: ({ event_id, page, limit }) => ({
         url: `/${event_id}/comments`,
@@ -103,6 +150,13 @@ export const eventsApi = api.injectEndpoints({
         url: `/comments/${comment_id}`,
         method: 'PATCH',
         body: { content },
+      }),
+      invalidatesTags: ['Comments'],
+    }),
+    deleteComment: builder.mutation<DeleteCommentResponse, DeleteCommentRequest>({
+      query: ({ comment_id }) => ({
+        url: `/comments/${comment_id}`,
+        method: 'DELETE',
       }),
       invalidatesTags: ['Comments'],
     }),
@@ -132,4 +186,4 @@ export const eventsApi = api.injectEndpoints({
   overrideExisting: false,
 })
 
-export const { useCreateEventMutation, useUpdateEventMutation, useGetRegisteredEventsQuery, useGetUserEventsQuery, useGetEventsListQuery, useGetEventDetailQuery, useGetEventCommentsQuery, useCreateCommentMutation, useUpdateCommentMutation, useEngageWithEventMutation, useEngageWithCommentMutation, useGetTrendingEventsQuery } = eventsApi
+export const { useCreateEventMutation, useUpdateEventMutation, useGetRegisteredEventsQuery, useGetUserEventsQuery, useGetEventsListQuery, useGetEventDetailQuery, useGetEventGalleryQuery, useCreateGalleryItemMutation, useGetEventGalleryModerationQuery, useApproveGalleryItemMutation, useRejectGalleryItemMutation, useGetEventCommentsQuery, useCreateCommentMutation, useUpdateCommentMutation, useDeleteCommentMutation, useEngageWithEventMutation, useEngageWithCommentMutation, useGetTrendingEventsQuery } = eventsApi

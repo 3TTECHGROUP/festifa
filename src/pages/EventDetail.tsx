@@ -1,17 +1,29 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Heart, MessageCircle, Eye, Share2, Calendar, Clock, MapPin, Ticket, User, ArrowRight, MoreHorizontal, AlertCircle, FileText } from 'lucide-react'
+import { Heart, MessageCircle, Eye, Share2, Calendar, Clock, MapPin, Ticket, User, ArrowRight, MoreHorizontal, AlertCircle, FileText, ImagePlus } from 'lucide-react'
 import { toast } from 'sonner'
-import { useGetEventDetailQuery, useGetEventCommentsQuery, useCreateCommentMutation, useUpdateCommentMutation, useEngageWithEventMutation, useEngageWithCommentMutation } from '@/RTK/EventsQuery/eventsQuery'
+import { useGetEventDetailQuery, useGetEventCommentsQuery, useCreateCommentMutation, useUpdateCommentMutation, useDeleteCommentMutation, useEngageWithEventMutation, useEngageWithCommentMutation } from '@/RTK/EventsQuery/eventsQuery'
 import type { EventCommentItem } from '@/RTK/EventsQuery/endpoint'
 import { useGetTemplateByIdQuery } from '@/RTK/TemplatesQuery/templatesQuery'
 import { getAllTemplatesInCategory, getCategories } from '@/service/templateLoader'
 import type { TemplateSummary } from '@/service/templateLoader'
 import TemplatePreview from '@/components/TemplatePreview'
+import EventGallery from '@/components/EventGallery'
 import RegistrationModal from '@/components/RegistrationModal'
 import PaymentModal from '@/components/PaymentModal'
 import LoginModal from '@/components/LoginModal'
+import ShareMemoryModal from '@/components/ShareMemoryModal'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 // Temporarily hidden per request - re-enable by flipping this back to true
 const SHOW_VIEW_COUNT = false
@@ -31,6 +43,8 @@ const EventDetail = () => {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editCommentContent, setEditCommentContent] = useState('')
   const [editCommentError, setEditCommentError] = useState('')
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
+  const [isShareMemoryModalOpen, setIsShareMemoryModalOpen] = useState(false)
   const COMMENTS_LIMIT = 10
 
   const commentsSectionRef = useRef<HTMLDivElement>(null)
@@ -62,6 +76,7 @@ const EventDetail = () => {
     setEditCommentContent('')
     setEditCommentError('')
     setOpenCommentMenuId(null)
+    setDeletingCommentId(null)
   }, [id])
 
   // Fetch detail via API
@@ -98,6 +113,7 @@ const EventDetail = () => {
 
   const [createComment, { isLoading: isSubmittingComment }] = useCreateCommentMutation()
   const [updateComment, { isLoading: isUpdatingComment }] = useUpdateCommentMutation()
+  const [deleteComment, { isLoading: isDeletingComment }] = useDeleteCommentMutation()
   const [engageWithEvent] = useEngageWithEventMutation()
   const [engageWithComment] = useEngageWithCommentMutation()
 
@@ -320,6 +336,7 @@ const EventDetail = () => {
     setEditCommentContent(comment.content)
     setEditCommentError('')
     setOpenCommentMenuId(null)
+    setDeletingCommentId(null)
   }
 
   const handleCancelEditComment = () => {
@@ -346,10 +363,41 @@ const EventDetail = () => {
     }
   }
 
+  const handleStartDeleteComment = (comment: EventCommentItem) => {
+    setDeletingCommentId(comment.id)
+    setOpenCommentMenuId(null)
+    setEditingCommentId(null)
+    setEditCommentContent('')
+    setEditCommentError('')
+  }
+
+  // Only the comment's author can delete it — the menu that triggers this is
+  // rendered for own comments only, and the API rejects anyone else's request.
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await deleteComment({ comment_id: commentId }).unwrap()
+      setDeletingCommentId(null)
+      // Removing the only comment on a page (other than the first) would leave
+      // that page empty, so step back to the previous one.
+      if (comments.length === 1 && commentsPage > 1) {
+        setCommentsPage((p) => Math.max(1, p - 1))
+      }
+      toast.success('Comment deleted.')
+    } catch (err: any) {
+      const msg = err?.data?.message || err?.error || 'Failed to delete comment. Please try again.'
+      toast.error(msg)
+    }
+  }
+
+  const handleShareMemoryClick = () => {
+    if (!requireAuth(() => setIsShareMemoryModalOpen(true))) return
+    setIsShareMemoryModalOpen(true)
+  }
+
   return (
     <div className="min-h-screen">
         <div className='container custom-hero-section-main'>
-          <div className='mt-6 h-80 md:h-[28rem] rounded-lg overflow-hidden bg-gray-100'>
+          <div className='mt-6 relative h-80 md:h-[28rem] rounded-lg overflow-hidden bg-gray-100'>
             {localTemplate ? (
               <TemplatePreview tpl={localTemplate} propOverrides={propOverrides} />
             ) : (
@@ -362,8 +410,12 @@ const EventDetail = () => {
                 }}
               />
             )}
+
+            {/* Gallery slider — floats over the banner's right edge; renders
+                nothing when the event has no media */}
+            <EventGallery eventId={id || ''} />
           </div>
-          
+
           {/* Stats Bar */}
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-6">
@@ -410,11 +462,22 @@ const EventDetail = () => {
               </button>
             </div>
             
-            {/* Share Button */}
-            <button className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors">
-              <Share2 className="w-5 h-5" />
-              <span className="text-sm font-medium">Share event</span>
-            </button>
+            <div className="flex items-center gap-4">
+              {/* Share Memory Button */}
+              <button
+                onClick={handleShareMemoryClick}
+                className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                <ImagePlus className="w-5 h-5" />
+                <span className="text-sm font-medium">Share memory</span>
+              </button>
+
+              {/* Share Button */}
+              <button className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors">
+                <Share2 className="w-5 h-5" />
+                <span className="text-sm font-medium">Share event</span>
+              </button>
+            </div>
           </div>
 
           {/* Event Details Section */}
@@ -670,6 +733,12 @@ const EventDetail = () => {
                                   >
                                     Edit
                                   </button>
+                                  <button
+                                    onClick={() => handleStartDeleteComment(comment)}
+                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                  >
+                                    Delete
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -835,6 +904,46 @@ const EventDetail = () => {
           setPendingAuthAction(null)
         }}
       />
+
+      {/* Share Memory Modal */}
+      <ShareMemoryModal
+        isOpen={isShareMemoryModalOpen}
+        onClose={() => setIsShareMemoryModalOpen(false)}
+        eventId={id || ''}
+        userId={currentUserId || ''}
+      />
+
+      {/* Delete Comment Confirmation */}
+      <AlertDialog
+        open={!!deletingCommentId}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingComment) setDeletingCommentId(null)
+        }}
+      >
+        <AlertDialogContent className="rounded-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure want to delete this comment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This comment will be permanently removed. This action can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingComment}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeletingComment}
+              onClick={(ev) => {
+                // Keep the dialog mounted while the request is in flight so the
+                // pending state stays visible; it closes once the delete resolves.
+                ev.preventDefault()
+                if (deletingCommentId) handleDeleteComment(deletingCommentId)
+              }}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {isDeletingComment ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
