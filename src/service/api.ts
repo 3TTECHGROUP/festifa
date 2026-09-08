@@ -18,6 +18,52 @@ const rawBaseQuery = fetchBaseQuery({
   },
 })
 
+// The refresh token itself is an httpOnly cookie set by the backend on login
+// (via any method — password or Firebase/Google both go through the same
+// session), never exposed to JS. `credentials: 'include'` on rawBaseQuery is
+// what actually sends it — the endpoint takes no body, matching the backend's
+// own `curl -X POST /auth/refresh` example.
+const REFRESH_PATH = '/auth/refresh'
+
+const clearSession = () => {
+  localStorage.removeItem('authToken')
+  localStorage.removeItem('isAuthenticated')
+  localStorage.removeItem('user')
+  localStorage.removeItem('email_verified')
+}
+
+// Multiple requests can 401 at nearly the same time (e.g. several widgets
+// fetching on mount after the access token has expired); share a single
+// in-flight refresh across all of them instead of firing one per request.
+let refreshPromise: Promise<boolean> | null = null
+
+const refreshSession = (api: Parameters<BaseQueryFn>[1], extraOptions: Parameters<BaseQueryFn>[2]) => {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      try {
+        const refreshResult = await rawBaseQuery({ url: REFRESH_PATH, method: 'POST' }, api, extraOptions)
+        if (refreshResult.error) return false
+        const data = refreshResult.data as any
+        if (data?.success === false) return false
+        // The response body carries the user's profile, not a bearer token — the
+        // renewed session lives entirely in the Set-Cookie header on this same
+        // response (handled by the browser via `credentials: 'include'`). Still
+        // pick up a token here if the backend ever adds one, and refresh the
+        // cached user profile since this response has the latest copy.
+        const newToken = data?.data?.token || data?.data?.access_token || data?.token || data?.access_token
+        if (newToken) localStorage.setItem('authToken', String(newToken))
+        if (data?.data) localStorage.setItem('user', JSON.stringify(data.data))
+        return true
+      } catch {
+        return false
+      } finally {
+        refreshPromise = null
+      }
+    })()
+  }
+  return refreshPromise
+}
+
 export const baseQueryWithAuth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
   args,
   api,
@@ -25,21 +71,11 @@ export const baseQueryWithAuth: BaseQueryFn<string | FetchArgs, unknown, FetchBa
 ) => {
   let result = await rawBaseQuery(args, api, extraOptions)
   if (result.error && result.error.status === 401) {
-    const refreshUrl = import.meta.env.VITE_API_REFRESH_URL as string | undefined
-    const refreshToken = localStorage.getItem('refreshToken')
-    if (refreshUrl && refreshToken) {
-      const refresh = await rawBaseQuery(
-        { url: refreshUrl, method: 'POST', body: { refreshToken } },
-        api,
-        extraOptions,
-      )
-      const newToken = (refresh as any).data?.token as string | undefined
-      if (newToken) {
-        localStorage.setItem('authToken', newToken)
-        result = await rawBaseQuery(args, api, extraOptions)
-      } else {
-        localStorage.removeItem('authToken')
-      }
+    const refreshed = await refreshSession(api, extraOptions)
+    if (refreshed) {
+      result = await rawBaseQuery(args, api, extraOptions)
+    } else {
+      clearSession()
     }
   }
   return result
@@ -48,7 +84,7 @@ export const baseQueryWithAuth: BaseQueryFn<string | FetchArgs, unknown, FetchBa
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithAuth,
-  tagTypes: ['Auth', 'Users', 'Events', 'Tickets', 'Templates', 'Comments'],
+  tagTypes: ['Auth', 'Users', 'Events', 'Tickets', 'Templates', 'Comments', 'Gallery'],
   endpoints: () => ({}),
 })
 
