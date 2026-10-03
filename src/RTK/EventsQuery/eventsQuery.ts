@@ -38,10 +38,11 @@ import {
   type EventGalleryResponse,
   type CreateGalleryItemRequest,
   type CreateGalleryItemResponse,
-  type EventGalleryModerationParams,
-  type EventGalleryModerationResponse,
   type GalleryItemModerationRequest,
   type GalleryItemModerationResponse,
+  EVENT_REGISTER_BASE,
+  type RegisterForEventRequest,
+  type RegisterForEventResponse,
 } from './endpoint'
 
 export const eventsApi = api.injectEndpoints({
@@ -108,13 +109,6 @@ export const eventsApi = api.injectEndpoints({
       }),
       invalidatesTags: ['Gallery'],
     }),
-    getEventGalleryModeration: builder.query<EventGalleryModerationResponse, EventGalleryModerationParams>({
-      query: ({ event_id }) => ({
-        url: `${EVENT_GALLERY_BASE}/gallery/${event_id}`,
-        method: 'GET',
-      }),
-      providesTags: ['Gallery'],
-    }),
     approveGalleryItem: builder.mutation<GalleryItemModerationResponse, GalleryItemModerationRequest>({
       query: ({ event_gallery_item_id }) => ({
         url: `${EVENT_GALLERY_BASE}/gallery/${event_gallery_item_id}/approve`,
@@ -174,6 +168,14 @@ export const eventsApi = api.injectEndpoints({
         params: { action_type },
       }),
     }),
+    registerForEvent: builder.mutation<RegisterForEventResponse, RegisterForEventRequest>({
+      query: ({ event_id, responses }) => ({
+        url: `${EVENT_REGISTER_BASE}/${event_id}/register`,
+        method: 'POST',
+        body: { responses: responses ?? [] },
+      }),
+      invalidatesTags: ['Events', 'Registrations'],
+    }),
     getTrendingEvents: builder.query<TrendingEventsResponse, TrendingEventsParams>({
       query: (params) => ({
         url: TRENDING_EVENTS_PATH,
@@ -186,4 +188,4 @@ export const eventsApi = api.injectEndpoints({
   overrideExisting: false,
 })
 
-export const { useCreateEventMutation, useUpdateEventMutation, useGetRegisteredEventsQuery, useGetUserEventsQuery, useGetEventsListQuery, useGetEventDetailQuery, useGetEventGalleryQuery, useCreateGalleryItemMutation, useGetEventGalleryModerationQuery, useApproveGalleryItemMutation, useRejectGalleryItemMutation, useGetEventCommentsQuery, useCreateCommentMutation, useUpdateCommentMutation, useDeleteCommentMutation, useEngageWithEventMutation, useEngageWithCommentMutation, useGetTrendingEventsQuery } = eventsApi
+export const { useCreateEventMutation, useUpdateEventMutation, useGetRegisteredEventsQuery, useGetUserEventsQuery, useGetEventsListQuery, useGetEventDetailQuery, useGetEventGalleryQuery, useCreateGalleryItemMutation, useApproveGalleryItemMutation, useRejectGalleryItemMutation, useGetEventCommentsQuery, useCreateCommentMutation, useUpdateCommentMutation, useDeleteCommentMutation, useEngageWithEventMutation, useEngageWithCommentMutation, useRegisterForEventMutation, useGetTrendingEventsQuery } = eventsApi

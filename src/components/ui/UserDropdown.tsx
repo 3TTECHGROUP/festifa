@@ -13,8 +13,15 @@ interface UserDropdownProps {
 
 const UserDropdown = ({ userName = '', userEmail = '', avatarUrl }: UserDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const showAvatar = Boolean(avatarUrl) && !avatarFailed;
+
+  // Retry the image (e.g. a fresh URL) if avatarUrl changes after a previous failure
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [avatarUrl]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -69,9 +76,15 @@ const UserDropdown = ({ userName = '', userEmail = '', avatarUrl }: UserDropdown
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-2 p-1 rounded-full hover:bg-black/10 transition-colors"
       >
-        <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={userName || 'User'} className="w-full h-full rounded-full object-cover" />
+        <div className="w-8 h-8 bg-black text-white rounded-full overflow-hidden flex items-center justify-center text-sm font-medium">
+          {showAvatar ? (
+            <img
+              src={avatarUrl}
+              alt={userName || 'User'}
+              referrerPolicy="no-referrer"
+              onError={() => setAvatarFailed(true)}
+              className="w-full h-full object-cover"
+            />
           ) : (
             getInitials(userName || (userEmail ? userEmail.split('@')[0] : 'U'))
           )}
@@ -93,9 +106,15 @@ const UserDropdown = ({ userName = '', userEmail = '', avatarUrl }: UserDropdown
           {/* User Info */}
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={userName || 'User'} className="w-full h-full rounded-full object-cover" />
+              <div className="w-10 h-10 bg-black text-white rounded-full overflow-hidden flex items-center justify-center text-sm font-medium">
+                {showAvatar ? (
+                  <img
+                    src={avatarUrl}
+                    alt={userName || 'User'}
+                    referrerPolicy="no-referrer"
+                    onError={() => setAvatarFailed(true)}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   getInitials(userName || (userEmail ? userEmail.split('@')[0] : 'U'))
                 )}

@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { AlertCircle, ArrowLeft, Check, Images, User, X } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Check, Images, Play, User, X } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  useGetEventGalleryModerationQuery,
+  useGetEventGalleryQuery,
   useApproveGalleryItemMutation,
   useRejectGalleryItemMutation,
 } from '@/RTK/EventsQuery/eventsQuery'
@@ -21,11 +21,16 @@ const isVideo = (item: EventGalleryItem, url: string) => {
   return VIDEO_EXTENSIONS.test(url)
 }
 
-const statusBadge = (status?: string) => {
-  const normalized = (status || 'pending').toLowerCase()
-  if (normalized === 'approved') return { label: 'Approved', className: 'bg-green-100 text-green-700' }
-  if (normalized === 'rejected') return { label: 'Rejected', className: 'bg-red-100 text-red-700' }
-  return { label: 'Pending', className: 'bg-yellow-100 text-yellow-700' }
+const statusBadge = (item: EventGalleryItem) => {
+  if (item.status) {
+    const normalized = item.status.toLowerCase()
+    if (normalized === 'approved') return { label: 'Approved', className: 'bg-green-100 text-green-700' }
+    if (normalized === 'rejected') return { label: 'Rejected', className: 'bg-red-100 text-red-700' }
+    return { label: 'Pending', className: 'bg-yellow-100 text-yellow-700' }
+  }
+  return item.is_displayed
+    ? { label: 'Approved', className: 'bg-green-100 text-green-700' }
+    : { label: 'Pending', className: 'bg-yellow-100 text-yellow-700' }
 }
 
 const EventGalleryModeration = () => {
@@ -33,10 +38,11 @@ const EventGalleryModeration = () => {
   const { id } = useParams()
   const eventId = id || ''
 
-  const { data, isFetching, isError, refetch } = useGetEventGalleryModerationQuery({ event_id: eventId }, { skip: !eventId })
+  const { data, isFetching, isError, refetch } = useGetEventGalleryQuery({ event_id: eventId }, { skip: !eventId })
   const [approveGalleryItem] = useApproveGalleryItemMutation()
   const [rejectGalleryItem] = useRejectGalleryItemMutation()
   const [actingId, setActingId] = useState<string | null>(null)
+  const [previewItem, setPreviewItem] = useState<EventGalleryItem | null>(null)
 
   const items = data?.data ?? []
 
@@ -126,20 +132,31 @@ const EventGalleryModeration = () => {
           {items.map((item) => {
             const url = getMediaUrl(item)
             const video = isVideo(item, url)
-            const badge = statusBadge(item.status)
+            const badge = statusBadge(item)
             const isActing = actingId === item.id
             return (
               <div key={item.id} className="bg-white rounded-lg overflow-hidden border border-gray-200 flex flex-col">
-                <div className="relative aspect-square bg-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setPreviewItem(item)}
+                  className="relative aspect-square bg-gray-100 w-full text-left group"
+                >
                   {video ? (
-                    <video src={url} className="w-full h-full object-cover" muted playsInline preload="metadata" controls />
+                    <video src={url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                   ) : (
                     <img src={url} alt={item.label || item.caption || 'Gallery submission'} className="w-full h-full object-cover" />
                   )}
                   <span className={`absolute top-2 left-2 text-xs font-medium px-2 py-0.5 rounded-full ${badge.className}`}>
                     {badge.label}
                   </span>
-                </div>
+                  {video && (
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors">
+                      <span className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+                        <Play className="w-5 h-5 text-gray-900 fill-current" />
+                      </span>
+                    </span>
+                  )}
+                </button>
 
                 <div className="p-3 flex-1 flex flex-col gap-2">
                   <p className="text-sm font-medium text-gray-900 truncate" title={item.label || item.caption || undefined}>
@@ -176,6 +193,38 @@ const EventGalleryModeration = () => {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {previewItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setPreviewItem(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setPreviewItem(null)}
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="max-w-4xl max-h-[85vh] w-full" onClick={(e) => e.stopPropagation()}>
+            {isVideo(previewItem, getMediaUrl(previewItem)) ? (
+              <video
+                src={getMediaUrl(previewItem)}
+                className="w-full max-h-[85vh] object-contain"
+                controls
+                autoPlay
+                playsInline
+              />
+            ) : (
+              <img
+                src={getMediaUrl(previewItem)}
+                alt={previewItem.label || previewItem.caption || 'Gallery submission'}
+                className="w-full max-h-[85vh] object-contain"
+              />
+            )}
+          </div>
         </div>
       )}
     </div>

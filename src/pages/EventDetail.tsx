@@ -4,7 +4,8 @@ import { useParams, Link } from 'react-router-dom'
 import { Heart, MessageCircle, Eye, Share2, Calendar, Clock, MapPin, Ticket, User, ArrowRight, MoreHorizontal, AlertCircle, FileText, ImagePlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useGetEventDetailQuery, useGetEventCommentsQuery, useCreateCommentMutation, useUpdateCommentMutation, useDeleteCommentMutation, useEngageWithEventMutation, useEngageWithCommentMutation } from '@/RTK/EventsQuery/eventsQuery'
-import type { EventCommentItem } from '@/RTK/EventsQuery/endpoint'
+import type { EventCommentItem, EventTicket } from '@/RTK/EventsQuery/endpoint'
+import { useLazyCheckEventAccessQuery } from '@/RTK/RegistrationsQuery/registrationsQuery'
 import { useGetTemplateByIdQuery } from '@/RTK/TemplatesQuery/templatesQuery'
 import { getAllTemplatesInCategory, getCategories } from '@/service/templateLoader'
 import type { TemplateSummary } from '@/service/templateLoader'
@@ -32,6 +33,8 @@ const EventDetail = () => {
   const { id } = useParams()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [selectedTicket, setSelectedTicket] = useState<EventTicket | null>(null)
+  const [hasRegistered, setHasRegistered] = useState(false)
   const [newComment, setNewComment] = useState('')
   const [commentError, setCommentError] = useState('')
   const [commentsPage, setCommentsPage] = useState(1)
@@ -116,6 +119,7 @@ const EventDetail = () => {
   const [deleteComment, { isLoading: isDeletingComment }] = useDeleteCommentMutation()
   const [engageWithEvent] = useEngageWithEventMutation()
   const [engageWithComment] = useEngageWithCommentMutation()
+  const [checkEventAccess] = useLazyCheckEventAccessQuery()
 
   // Requires the user to be authenticated before running `action`; otherwise opens the login modal and reruns `action` on success
   const requireAuth = (action: () => void) => {
@@ -191,6 +195,8 @@ const EventDetail = () => {
       tags: [] as string[],
       tickets: e.tickets || [],
       isFree: !!e.is_free_event,
+      isFormEnabled: !!e.is_form_enabled,
+      formFields: e.form?.form_fields || [],
       sessions: (e.sessions || []).map((s) => ({
         id: s.id,
         name: s.name,
@@ -394,6 +400,34 @@ const EventDetail = () => {
     setIsShareMemoryModalOpen(true)
   }
 
+  const handleRegisterClick = () => {
+    if (!requireAuth(() => setIsModalOpen(true))) return
+    setIsModalOpen(true)
+  }
+
+  const handleGetTicketClick = (ticket: EventTicket) => {
+    const openPurchase = async () => {
+      // Form-gated events must be registered-and-completed before tickets can be bought.
+      if (event?.isFormEnabled) {
+        try {
+          const access = await checkEventAccess({ event_id: event.id }).unwrap()
+          if (!access.data.can_enter) {
+            toast.error(access.data.reason || 'Please complete event registration before buying a ticket.')
+            setIsModalOpen(true)
+            return
+          }
+        } catch {
+          // If the access check itself fails, fall through and let the purchase attempt surface the real error.
+        }
+      }
+      setSelectedTicket(ticket)
+      setIsPaymentModalOpen(true)
+    }
+
+    if (!requireAuth(openPurchase)) return
+    openPurchase()
+  }
+
   return (
     <div className="min-h-screen">
         <div className='container custom-hero-section-main'>
@@ -568,7 +602,7 @@ const EventDetail = () => {
                   event.tickets.map((ticket) => {
                     const isFree = ticket.is_free
                     const price = isFree ? 0 : Number(ticket.price ?? 0)
-                    const soldOut = Number(ticket.quantity ?? 0) <= 0
+                    const soldOut = ticket.sold_out ?? Number(ticket.quantity ?? 1) <= 0
                     return (
                       <div
                         key={ticket.id}
@@ -582,8 +616,8 @@ const EventDetail = () => {
                               <span className="font-semibold text-gray-900 text-sm">{ticket.name}</span>
                             </div>
                             <div className="flex items-center gap-6 text-xs text-gray-500">
-                              <span>Price: ${price}</span>
-                              <span>Quantity available: {ticket.quantity ?? 0}</span>
+                              <span>{isFree ? 'Free' : `Price: $${price}`}</span>
+                              {typeof ticket.quantity === 'number' && <span>Quantity available: {ticket.quantity}</span>}
                             </div>
                           </div>
                         </div>
@@ -594,7 +628,7 @@ const EventDetail = () => {
                           </span>
                         ) : (
                           <button
-                            onClick={() => setIsPaymentModalOpen(true)}
+                            onClick={() => handleGetTicketClick(ticket)}
                             className="flex items-center gap-2 text-gray-900 hover:text-gray-700 font-medium text-sm whitespace-nowrap ml-4"
                           >
                             Get Ticket
@@ -640,18 +674,23 @@ const EventDetail = () => {
             </div>
           </div>
 
-          {/* Register Button — hidden when already logged in */}
-          {localStorage.getItem('isAuthenticated') !== 'true' && (
-            <div className="py-6">
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="w-full bg-[#ffa500] hover:bg-orange-600 text-white font-semibold py-4 rounded-full flex items-center justify-center gap-2 transition-colors"
-              >
-                Register
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
-          )}
+          {/* Register Button — always visible; login-gated on click */}
+          <div className="py-6">
+            <button
+              onClick={handleRegisterClick}
+              disabled={hasRegistered}
+              className="w-full bg-[#ffa500] hover:bg-orange-600 text-white font-semibold py-4 rounded-full flex items-center justify-center gap-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {hasRegistered ? (
+                'Registered'
+              ) : (
+                <>
+                  Register
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </button>
+          </div>
 
           {/* Comments Section */}
           <div ref={commentsSectionRef} className="bg-gray-50 rounded-lg p-6 mb-8">
@@ -881,17 +920,23 @@ const EventDetail = () => {
       )}
 
       {/* Registration Modal */}
-      <RegistrationModal 
+      <RegistrationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        eventId={event.id}
         eventTitle={event.title}
+        formFields={event.formFields}
+        onRegistered={() => setHasRegistered(true)}
       />
 
       {/* Payment Modal */}
       <PaymentModal
         isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        ticketPrice={Number(event.tickets?.[0]?.price ?? 50)}
+        onClose={() => {
+          setIsPaymentModalOpen(false)
+          setSelectedTicket(null)
+        }}
+        ticket={selectedTicket}
       />
 
       {/* Login Modal */}

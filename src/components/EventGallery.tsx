@@ -36,6 +36,7 @@ const EventGallery = ({ eventId }: EventGalleryProps) => {
 
   const media = useMemo(() => {
     return (data?.data ?? []).flatMap((item) => {
+      if (!item.is_displayed) return []
       const url = getMediaUrl(item)
       return url ? [{ item, url, video: isVideo(item, url) }] : []
     })

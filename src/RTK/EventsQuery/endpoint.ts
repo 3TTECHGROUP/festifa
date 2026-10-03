@@ -129,23 +129,43 @@ export type RegisteredEventItem = {
     start_time?: string
     end_time?: string
   }>
-  tickets?: Array<{
-    id: string
-    event_id: string
-    currency_id: string
-    currency?: string
-    event?: string
-    name: string
-    description?: string
-    price?: number
-    quantity?: number
-    is_free?: boolean
-    is_predefined?: boolean
-  }>
+  tickets?: EventTicket[]
   registrations?: any[]
-  form?: any
+  form?: EventForm
   template_prop_responses?: TemplatePropResponse[]
   similar_events?: RegisteredEventItem[]
+}
+
+export type EventTicket = {
+  id: string
+  event_id: string
+  currency_id: string
+  currency?: string
+  name: string
+  description?: string
+  price?: number
+  quantity?: number
+  is_free?: boolean
+  is_predefined?: boolean
+  sold_out?: boolean
+}
+
+export type EventFormFieldType = 'text' | 'email' | 'number' | 'date' | 'textarea' | 'select' | 'radio' | 'checkbox'
+
+export type EventFormField = {
+  id: string
+  form_id: string
+  field_label: string
+  field_type: EventFormFieldType
+  is_required: boolean
+  options: string[]
+  order_index: number
+}
+
+export type EventForm = {
+  id: string
+  event_id: string
+  form_fields: EventFormField[]
 }
 
 export type RegisteredEventsResponse = {
@@ -329,10 +349,6 @@ export type EventGalleryParams = {
   event_id: string
 }
 
-// The gallery API currently returns an empty `data` array for every event, so the
-// item fields below are typed permissively: `media_url` follows the naming used by
-// the rest of the events API, and the `url`/`media_type` aliases keep the UI working
-// if the backend serves a different key once real items exist.
 export type EventGalleryItem = {
   id: string
   event_id?: string
@@ -344,6 +360,7 @@ export type EventGalleryItem = {
   caption?: string
   label?: string
   status?: string
+  is_displayed?: boolean
   created_at?: string
   user?: { name?: string; profile_image?: string }
 }
@@ -372,18 +389,6 @@ export type CreateGalleryItemResponse = {
   data?: EventGalleryItem[]
 }
 
-// Host-facing gallery moderation: lists every submitted item (any status) for
-// review, and lets the host approve/reject each one individually.
-export type EventGalleryModerationParams = {
-  event_id: string
-}
-
-export type EventGalleryModerationResponse = {
-  success: boolean
-  message?: string
-  data: EventGalleryItem[]
-}
-
 export type GalleryItemModerationRequest = {
   event_gallery_item_id: string
 }
@@ -392,6 +397,37 @@ export type GalleryItemModerationResponse = {
   success: boolean
   message?: string
   data?: EventGalleryItem
+}
+
+// Event Registration (RSVP / form submission) endpoint and types
+export const EVENT_REGISTER_BASE = '/events'
+
+export type EventFormResponseInput = {
+  field_id: string
+  response_value: string
+}
+
+export type RegisterForEventRequest = {
+  event_id: string
+  responses?: EventFormResponseInput[]
+}
+
+export type EventRegistration = {
+  id: string
+  event_id: string
+  user_id: string
+  status?: string
+  is_form_incomplete?: boolean
+  requires_form?: boolean
+  form_completed_at?: string | null
+  created_at?: string
+  responses?: EventFormResponseInput[]
+}
+
+export type RegisterForEventResponse = {
+  success: boolean
+  message?: string
+  data: EventRegistration
 }
 
 // Trending Events endpoint and types

@@ -4,8 +4,10 @@ import { Input } from '@/components/ui/input'
 import { Search, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
+import { onAuthStateChanged } from 'firebase/auth'
 import logo from '@/assets/images/logo.png'
 import UserDropdown from '@/components/ui/UserDropdown'
+import { auth } from '@/config/firebase'
 
 const Header = () => {
   const location = useLocation()
@@ -13,6 +15,7 @@ const Header = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [userName, setUserName] = useState<string>('')
   const [userEmail, setUserEmail] = useState<string>('')
+  const [avatarUrl, setAvatarUrl] = useState<string>('')
   const navigate = useNavigate()
 
   // Check authentication status and user info
@@ -24,18 +27,21 @@ const Header = () => {
       try {
         const raw = localStorage.getItem('user')
         if (raw) {
-          const user = JSON.parse(raw) as { name?: string | null; email?: string | null }
+          const user = JSON.parse(raw) as { name?: string | null; email?: string | null; picture?: string | null }
           const email = user?.email || ''
           const name = user?.name || (email ? email.split('@')[0] : 'User')
           setUserEmail(email)
           setUserName(name)
+          setAvatarUrl(user?.picture || '')
         } else {
           setUserEmail('')
           setUserName('')
+          setAvatarUrl('')
         }
       } catch {
         setUserEmail('')
         setUserName('')
+        setAvatarUrl('')
       }
     }
 
@@ -48,6 +54,28 @@ const Header = () => {
       window.removeEventListener('storage', checkAuth)
     }
   }, [location])
+
+  // Backfills name/picture from the live Firebase profile for sessions stored
+  // before those fields were persisted to localStorage on login.
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      if (!fbUser) return
+      try {
+        const raw = localStorage.getItem('user')
+        const user = raw ? JSON.parse(raw) : {}
+        const name = user?.name || fbUser.displayName || null
+        const picture = user?.picture || fbUser.photoURL || null
+        if (name !== user?.name || picture !== user?.picture) {
+          localStorage.setItem('user', JSON.stringify({ ...user, name, picture }))
+          setUserName(name || (user?.email ? user.email.split('@')[0] : 'User'))
+          setAvatarUrl(picture || '')
+        }
+      } catch {
+        // Ignore malformed localStorage state; checkAuth's fallback already covers it.
+      }
+    })
+    return () => unsubscribe()
+  }, [])
 
   const navItems = [
     { name: 'Events', path: '/events' },
@@ -107,7 +135,7 @@ const Header = () => {
           {/* Desktop Auth Section */}
           <div className="hidden md:flex items-center gap-3 ml-auto">
             {isAuthenticated ? (
-              <UserDropdown userName={userName || 'User'} userEmail={userEmail || ''} />
+              <UserDropdown userName={userName || 'User'} userEmail={userEmail || ''} avatarUrl={avatarUrl} />
             ) : (
               <>
                 <Button 
@@ -182,7 +210,7 @@ const Header = () => {
             <div className="pt-2 space-y-2">
               {isAuthenticated ? (
                 <div className="w-full">
-                  <UserDropdown userName={userName || 'User'} userEmail={userEmail || ''} />
+                  <UserDropdown userName={userName || 'User'} userEmail={userEmail || ''} avatarUrl={avatarUrl} />
                 </div>
               ) : (
                 <>
