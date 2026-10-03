@@ -85,10 +85,14 @@ const Login = () => {
       
       // Send the ID token to your backend
       const res = await firebaseAuth({ id_token: idToken }).unwrap()
-      
+
       toast.success(res?.message || 'Logged in successfully with Google')
       localStorage.setItem('isAuthenticated', 'true')
-      localStorage.setItem('user', JSON.stringify(res.data))
+      localStorage.setItem('user', JSON.stringify({
+        ...res.data,
+        name: res.data.name || result.user.displayName || null,
+        picture: res.data.picture || result.user.photoURL || null,
+      }))
       // Persist access token if backend returns it (same as the email/password path above)
       const googleToken = (res as any)?.data?.token || (res as any)?.token
       if (googleToken) {

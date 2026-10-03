@@ -84,7 +84,7 @@ export const baseQueryWithAuth: BaseQueryFn<string | FetchArgs, unknown, FetchBa
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithAuth,
-  tagTypes: ['Auth', 'Users', 'Events', 'Tickets', 'Templates', 'Comments', 'Gallery'],
+  tagTypes: ['Auth', 'Users', 'Events', 'Tickets', 'Templates', 'Comments', 'Gallery', 'Registrations'],
   endpoints: () => ({}),
 })
 

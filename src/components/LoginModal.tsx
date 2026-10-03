@@ -26,9 +26,13 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
     setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
   }
 
-  const persistSession = (res: any) => {
+  const persistSession = (res: any, firebaseUser?: { displayName?: string | null; photoURL?: string | null }) => {
     localStorage.setItem('isAuthenticated', 'true')
-    localStorage.setItem('user', JSON.stringify(res.data))
+    localStorage.setItem('user', JSON.stringify({
+      ...res.data,
+      name: res?.data?.name || firebaseUser?.displayName || null,
+      picture: res?.data?.picture || firebaseUser?.photoURL || null,
+    }))
     const token = res?.data?.token || res?.token
     if (token) localStorage.setItem('authToken', String(token))
     localStorage.setItem('email_verified', String(res?.data?.email_verified))
@@ -58,7 +62,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
       const idToken = await result.user.getIdToken()
       const res = await firebaseAuth({ id_token: idToken }).unwrap()
       toast.success(res?.message || 'Logged in successfully with Google')
-      persistSession(res)
+      persistSession(res, result.user)
       onClose()
       onSuccess?.()
     } catch (err: any) {
